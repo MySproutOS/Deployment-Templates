@@ -30,7 +30,13 @@ source_epoch="$(git show -s --format=%ct HEAD)"
 export SOURCE_DATE_EPOCH="$source_epoch"
 export CARGO_INCREMENTAL=0
 export CARGO_PROFILE_RELEASE_DEBUG=0
-export RUSTFLAGS="-Cstrip=symbols --remap-path-prefix=${workspace}=."
+RUSTFLAGS="-Cstrip=symbols --remap-path-prefix=${workspace}=."
+if [[ "$target" == *-pc-windows-msvc ]]; then
+  # link.exe otherwise writes nondeterministic COFF/PE metadata. Rust uses this
+  # flag for its own reproducible MSVC builds as well.
+  RUSTFLAGS="$RUSTFLAGS -Clink-arg=/Brepro"
+fi
+export RUSTFLAGS
 
 first="$(mktemp -d)"
 second="$(mktemp -d)"

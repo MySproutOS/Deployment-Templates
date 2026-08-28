@@ -66,6 +66,38 @@ jobs:
           version: 1.3.0
       - run: scripts/oci/smoke-test.sh
 
+  windows-reproducibility:
+    name: Windows reproducibility (${{ matrix.id }})
+    runs-on: windows-2025
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: memos
+            package: sprout-template-memos
+          - id: umami
+            package: sprout-template-umami
+    steps:
+      # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Build twice in independent target directories and compare bytes
+        shell: bash
+        run: >-
+          scripts/ci/build-plugin.sh
+          "$PLUGIN_PACKAGE"
+          "$PLUGIN_PACKAGE"
+          "$PLUGIN_ID"
+          x86_64-pc-windows-msvc
+          windows
+          amd64
+          .exe
+        env:
+          PLUGIN_PACKAGE: ${{ matrix.package }}
+          PLUGIN_ID: ${{ matrix.id }}
+
   memos-pinned-upstream:
     name: Memos pinned-upstream acceptance
     runs-on: ubuntu-24.04
