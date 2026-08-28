@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.sproutos.me/deployment-templates/catalogue-v1.schema.json",
+  "title": "SproutOS deployment-template catalogue v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "generated_from_commit", "apps"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "generated_from_commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "apps": {
+      "type": "array",
+      "items": { "$ref": "app-manifest-v1.schema.json" }
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.sproutos.me/deployment-templates/provenance-v1.schema.json",
+  "title": "SproutOS deployment-template publication provenance v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "repository", "workflow", "ref", "source_commit", "subject", "materials"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "repository": { "const": "MySproutOS/Deployment-Templates" },
+    "workflow": { "type": "string", "pattern": "^\\.github/workflows/[A-Za-z0-9._-]+\\.ya?ml$" },
+    "ref": { "type": "string", "pattern": "^refs/(heads|tags)/[^\\s]+$" },
+    "source_commit": { "$ref": "#/$defs/commit" },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "name", "digest"],
+      "properties": {
+        "kind": { "enum": ["plugin", "catalogue"] },
+        "name": { "type": "string", "minLength": 1 },
+        "digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "materials": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["uri", "digest"],
+        "properties": {
+          "uri": { "type": "string", "minLength": 1 },
+          "digest": { "$ref": "#/$defs/digest" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" }
+  }
+}

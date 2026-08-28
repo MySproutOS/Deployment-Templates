@@ -1,0 +1,20 @@
+[package]
+name = "sprout-template-protocol"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Canonical versioned wire contract for SproutOS deployment-template plugins"
+repository = "https://github.com/MySproutOS/Deployment-Templates"
+readme = "README.md"
+keywords = ["sproutos", "deployment", "template", "protocol"]
+categories = ["development-tools"]
+include = ["src/**", "schema/**", "fixtures/**", "tests/**", "README.md", "PROTOCOL.md", "Cargo.toml"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+jsonschema = { version = "0.33", default-features = false }

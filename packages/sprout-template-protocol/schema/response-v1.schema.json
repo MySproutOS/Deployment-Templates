@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.sproutos.me/template-protocol/response-v1.schema.json",
+  "title": "SproutOS template apply response v1",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "protocol_version", "changes", "warnings"],
+      "properties": {
+        "status": { "const": "ok" },
+        "protocol_version": { "const": 1 },
+        "changes": { "type": "array", "items": { "$ref": "#/$defs/change" } },
+        "warnings": { "type": "array", "items": { "$ref": "#/$defs/warning" } }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "protocol_version", "error"],
+      "properties": {
+        "status": { "const": "error" },
+        "protocol_version": { "const": 1 },
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "message"],
+          "properties": {
+            "code": {
+              "enum": ["invalid_request", "unsupported_protocol", "unsupported_upstream", "unsafe_workspace", "conflicting_change", "io", "internal"]
+            },
+            "message": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "token": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!\\.git(?:/|$))(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*\\\\)(?!.*//).+$"
+    },
+    "change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "kind", "before_sha256", "after_sha256"],
+      "properties": {
+        "path": { "$ref": "#/$defs/path" },
+        "kind": { "enum": ["created", "modified", "deleted"] },
+        "before_sha256": { "oneOf": [{ "$ref": "#/$defs/digest" }, { "type": "null" }] },
+        "after_sha256": { "oneOf": [{ "$ref": "#/$defs/digest" }, { "type": "null" }] }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "created" } }, "required": ["kind"] },
+          "then": { "properties": { "before_sha256": { "type": "null" }, "after_sha256": { "$ref": "#/$defs/digest" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "modified" } }, "required": ["kind"] },
+          "then": { "properties": { "before_sha256": { "$ref": "#/$defs/digest" }, "after_sha256": { "$ref": "#/$defs/digest" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "deleted" } }, "required": ["kind"] },
+          "then": { "properties": { "before_sha256": { "$ref": "#/$defs/digest" }, "after_sha256": { "type": "null" } } }
+        }
+      ]
+    },
+    "warning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message", "path"],
+      "properties": {
+        "code": { "$ref": "#/$defs/token" },
+        "message": { "type": "string", "minLength": 1 },
+        "path": { "oneOf": [{ "$ref": "#/$defs/path" }, { "type": "null" }] }
+      }
+    }
+  }
+}

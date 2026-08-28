@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "plugins": {
+    "memos": {
+      "artifact": "ghcr.io/mysproutos/memos-plugin@sha256:2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "umami": {
+      "artifact": "ghcr.io/mysproutos/umami-plugin@sha256:1111111111111111111111111111111111111111111111111111111111111111"
+    }
+  }
+}
