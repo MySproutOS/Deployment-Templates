@@ -321,6 +321,28 @@ jobs:
             release/catalogue/SHA256SUMS \
             release/subjects.json
 
+  import-catalogue:
+    name: Queue verified SproutOS catalogue import
+    needs: [assemble, verify-public, release]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: catalogue-publication
+    permissions:
+      contents: read # Check out only this repository's pinned delivery client.
+      id-token: write # Mint one short-lived SproutOS-audience token; no secret is stored.
+    steps:
+      # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      # v5; this is the exact run artifact already verified anonymously from GHCR.
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          name: release-inputs
+          path: release
+      - name: Request import of the exact verified catalogue digest
+        run: scripts/oci/import-catalogue.sh release/subjects.json release/catalogue
+
   isolation-proof-prepare:
     name: Validate isolation proof sources
     runs-on: ubuntu-24.04
