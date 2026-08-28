@@ -8,6 +8,7 @@ on:
       - Cargo.toml
       - rust-toolchain.toml
       - apps/**
+      - artifacts/isolation-probes/**
       - crates/**
       - packages/**
       - plugins/**
@@ -319,6 +320,261 @@ jobs:
             release/catalogue/plugin-lock.json \
             release/catalogue/SHA256SUMS \
             release/subjects.json
+          gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false
+          immutable="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" --jq '.immutable')"
+          if [[ "$immutable" != true ]]; then
+            echo "Repository release immutability is not enabled; removing the unsafe release." >&2
+            gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes
+            exit 1
+          fi
+
+  isolation-proof-prepare:
+    name: Validate isolation proof sources
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Require protected main
+        run: test "$GITHUB_REF" = refs/heads/main
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: MySproutOS/SproutOS
+          ref: 5a5e7e9b9265ce9ad241e69a9c0ae655b86915dd
+          path: .upstream/SproutOS
+          persist-credentials: false
+      - name: Verify the normative Linux boundary fixture
+        run: |
+          set -euo pipefail
+          lock=artifacts/isolation-probes/source-lock.json
+          source_path="$(jq -r '.successBoundary.path' "$lock")"
+          source=".upstream/SproutOS/$source_path"
+          test "$(git -C .upstream/SproutOS rev-parse HEAD)" = "$(jq -r '.successBoundary.commit' "$lock")"
+          test "$(git -C .upstream/SproutOS rev-parse "HEAD:$source_path")" = "$(jq -r '.successBoundary.gitBlobSha1' "$lock")"
+          test "$(sha256sum "$source" | awk '{print $1}')" = "$(jq -r '.successBoundary.sha256' "$lock")"
+          test "$(wc -c <"$source" | tr -d ' ')" = "$(jq -r '.successBoundary.size' "$lock")"
+      - name: Validate the nested proof workspace
+        run: |
+          cargo fmt --manifest-path artifacts/isolation-probes/Cargo.toml --all --check
+          cargo clippy --manifest-path artifacts/isolation-probes/Cargo.toml --all-targets --all-features --locked -- -D warnings
+          cargo test --manifest-path artifacts/isolation-probes/Cargo.toml --all-targets --all-features --locked
+      - id: matrix
+        run: echo "matrix=$(artifacts/isolation-probes/discover-matrix.sh)" >>"$GITHUB_OUTPUT"
+
+  isolation-proof-build:
+    name: Build isolation proof ${{ matrix.kind }} for ${{ matrix.target }}
+    needs: isolation-proof-prepare
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.isolation-proof-prepare.outputs.matrix) }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Install Rust target
+        run: rustup target add "$BUILD_TARGET"
+        shell: bash
+        env:
+          BUILD_TARGET: ${{ matrix.target }}
+      - name: Install musl linker
+        if: matrix.os == 'linux'
+        run: sudo apt-get update && sudo apt-get install --yes musl-tools
+      - name: Reproduce production bytes
+        shell: bash
+        run: >-
+          artifacts/isolation-probes/build.sh
+          "$PROOF_KIND" "$BUILD_TARGET" "$BUILD_OS" "$BUILD_ARCH"
+          "$EXECUTABLE_SUFFIX" dist/isolation-probes
+        env:
+          PROOF_KIND: ${{ matrix.kind }}
+          BUILD_TARGET: ${{ matrix.target }}
+          BUILD_OS: ${{ matrix.os }}
+          BUILD_ARCH: ${{ matrix.arch }}
+          EXECUTABLE_SUFFIX: ${{ matrix.suffix }}
+      - name: Run native smoke behavior
+        shell: bash
+        run: artifacts/isolation-probes/smoke.sh "$PROOF_KIND" "$BUILD_TARGET" "$EXECUTABLE_SUFFIX"
+        env:
+          PROOF_KIND: ${{ matrix.kind }}
+          BUILD_TARGET: ${{ matrix.target }}
+          EXECUTABLE_SUFFIX: ${{ matrix.suffix }}
+      # v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: isolation-proof-${{ matrix.kind }}-${{ matrix.target }}
+          path: dist/isolation-probes/${{ matrix.kind }}/${{ matrix.target }}
+          if-no-files-found: error
+          retention-days: 2
+
+  isolation-proof-assemble:
+    name: Assemble isolation proof indexes
+    needs: isolation-proof-build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      subjects: ${{ steps.subjects.outputs.subjects }}
+    steps:
+      # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      # v5
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          pattern: isolation-proof-*
+          path: dist/isolation-probes
+      # v1
+      - uses: oras-project/setup-oras@22ce207df3b08e061f537244349aac6ae1d214f6
+        with:
+          version: 1.3.0
+      - name: Assemble three catalogue-independent indexes
+        run: >-
+          artifacts/isolation-probes/assemble.sh
+          dist/isolation-probes release/isolation-probes "$REGISTRY_BASE" "$GITHUB_SHA"
+      - id: subjects
+        run: echo "subjects=$(jq -c '{include:.subjects}' release/isolation-probes/subjects.json)" >>"$GITHUB_OUTPUT"
+      # v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: isolation-proof-release
+          path: release/isolation-probes
+          if-no-files-found: error
+          retention-days: 2
+
+  isolation-proof-publish:
+    name: Publish and attest isolation proof ${{ matrix.id }}
+    needs: isolation-proof-assemble
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.isolation-proof-assemble.outputs.subjects) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: catalogue-publication
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      # v5
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          name: isolation-proof-release
+          path: release/isolation-probes
+      # v1
+      - uses: oras-project/setup-oras@22ce207df3b08e061f537244349aac6ae1d214f6
+        with:
+          version: 1.3.0
+      # v4.1.0
+      - uses: sigstore/cosign-installer@ba7bc0a3fef59531c69a25acd34668d6d3fe6f22
+      - name: Authenticate with the job-scoped registry token
+        run: printf '%s' "$GITHUB_TOKEN" | oras login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Publish immutable root and keylessly sign it
+        run: scripts/oci/publish-subject.sh "release/isolation-probes/$LAYOUT" "$NAME" "$TAG" "$DIGEST"
+        env:
+          COSIGN_IDENTITY: https://github.com/${{ github.repository }}/.github/workflows/publish.yml@${{ github.ref }}
+          LAYOUT: ${{ matrix.layout }}
+          NAME: ${{ matrix.name }}
+          TAG: ${{ matrix.tag }}
+          DIGEST: ${{ matrix.digest }}
+      # v4
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+        with:
+          subject-name: ${{ matrix.name }}
+          subject-digest: ${{ matrix.digest }}
+          push-to-registry: true
+
+  isolation-proof-verify-public:
+    name: Verify public isolation proof supply chain
+    needs: [isolation-proof-assemble, isolation-proof-publish]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      # v5
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          name: isolation-proof-release
+          path: release/isolation-probes
+      # v1
+      - uses: oras-project/setup-oras@22ce207df3b08e061f537244349aac6ae1d214f6
+        with:
+          version: 1.3.0
+      # v4.1.0
+      - uses: sigstore/cosign-installer@ba7bc0a3fef59531c69a25acd34668d6d3fe6f22
+      - name: Verify anonymous indexes, manifests, executable bytes, signatures, and attestations
+        run: |
+          mkdir -p "$DOCKER_CONFIG"
+          artifacts/isolation-probes/verify-public.sh release/isolation-probes/subjects.json
+        env:
+          DOCKER_CONFIG: ${{ runner.temp }}/anonymous-docker-config
+          GH_TOKEN: ${{ github.token }}
+      - name: Explain the one-time public package gate
+        if: failure()
+        run: |
+          cat >>"$GITHUB_STEP_SUMMARY" <<'EOF'
+          ## Public isolation-proof verification failed
+
+          New GHCR packages are private initially. Make `isolation-proof-success`,
+          `isolation-proof-stdout-flood`, and `isolation-proof-fork-timeout` public, then rerun.
+          EOF
+
+  isolation-proof-release:
+    name: Publish immutable isolation proof release
+    needs: [isolation-proof-assemble, isolation-proof-verify-public]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: catalogue-publication
+    permissions:
+      contents: write
+    steps:
+      # v5
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          name: isolation-proof-release
+          path: release/isolation-probes
+      - name: Publish immutable proof metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="isolation-proofs-$GITHUB_SHA"
+          gh release create "$tag" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Isolation proofs ${GITHUB_SHA:0:12}" \
+            --notes "Three signed, catalogue-independent native isolation proof indexes." \
+            --draft
+          gh release upload "$tag" \
+            --repo "$GITHUB_REPOSITORY" \
+            release/isolation-probes/subjects.json \
+            release/isolation-probes/source-lock.json \
+            release/isolation-probes/SHA256SUMS
           gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false
           immutable="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" --jq '.immutable')"
           if [[ "$immutable" != true ]]; then
