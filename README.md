@@ -25,6 +25,19 @@ Published plugin artifacts are addressed by OCI digest. The generated catalogue 
 records those immutable digests plus its source provenance. Release workflows use GitHub OIDC for
 keyless signatures and attestations; no long-lived signing key belongs in this repository.
 
+After public verification and immutable GitHub release publication, the protected `main`
+publication workflow mints a second short-lived OIDC token with audience `sproutos` and requests
+`https://api.sproutos.me/v1/deploy/catalogue/import` for the exact catalogue OCI digest. The
+delivery job rechecks the downloaded catalogue bytes, source SHA, repository, workflow, ref, and
+provenance subject before requesting the import. Its only permissions are `contents: read` and
+`id-token: write`; the API address is fixed so a repository variable cannot redirect the token, and
+there is no SproutOS token or secret to configure. Transport retries reuse the same run identity and
+digest, which the API queues idempotently.
+
+The request does not publish listings. SproutOS pulls and verifies the digest and provenance again,
+then reconciles `blocked` manifests as drafts; only manifests already carrying verified `live`
+readiness are eligible to become public.
+
 Each plugin also owns the exact `.github/workflows/sproutos-deploy.yml` installed into a generated
 fork. That workflow builds the pinned application source on GitHub-hosted Actions, then invokes the
 deploy action at a full commit SHA. The control-plane worker applies and pushes the deterministic
@@ -80,6 +93,8 @@ commit Cargo's resolved source to `Cargo.lock`.
 4. Keyless-sign and attest each artifact.
 5. Generate the catalogue from the reviewed sources and exact plugin lock.
 6. Publish, sign, and attest the catalogue artifact.
+7. Verify it anonymously, publish its immutable release, and request the digest-pinned SproutOS
+   import with the protected workflow's OIDC identity.
 
 SproutOS imports only a verified generated catalogue. Source specifications and mutable OCI tags
 are never import authority.
