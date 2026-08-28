@@ -99,6 +99,26 @@ discover_release() {
   }
 }
 
+discover_created_draft() {
+  local attempt
+  local status
+
+  # GitHub can briefly list a new draft under an internal `untagged-*` name after `release create`
+  # succeeds. During that window an exact-tag search returns absence even though the draft exists.
+  # Retry only discovery: never issue a second create, and fail immediately on API or JSON errors.
+  for attempt in 1 2 3 4 5; do
+    if discover_release; then
+      return 0
+    else
+      status=$?
+    fi
+    [[ $status -eq 4 ]] || return "$status"
+    [[ $attempt -eq 5 ]] || sleep 2
+  done
+  echo "Created draft did not become discoverable under tag $tag after 5 attempts." >&2
+  return 1
+}
+
 validate_metadata() {
   local expected_draft="$1"
   local expected_immutable="$2"
@@ -226,7 +246,7 @@ create_draft() {
   create=(gh release create "$tag" --repo "$repository" --target "$source_commit" --title "$title" --notes "$notes" --draft)
   [[ "$tag_state" == absent ]] || create+=(--verify-tag)
   "${create[@]}" || return 1
-  discover_release || return 1
+  discover_created_draft || return 1
   validate_metadata true false || return 1
   validate_assets true || return 1
 }

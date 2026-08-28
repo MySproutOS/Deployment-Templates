@@ -81,6 +81,16 @@ case "$command" in
       if [[ ! -f "$state/release.json" ]]; then
         printf '[[]]\n'
       else
+        if [[ -f "$state/hide-created-release-for" ]]; then
+          count=0
+          [[ ! -f "$state/release-list-count" ]] || count="$(cat "$state/release-list-count")"
+          count=$((count + 1))
+          printf '%s\n' "$count" >"$state/release-list-count"
+          if [[ "$count" -le "$(cat "$state/hide-created-release-for")" ]]; then
+            printf '[[]]\n'
+            exit 0
+          fi
+        fi
         printf '[[%s]]\n' "$(release_json)"
       fi
     elif [[ "$endpoint" == */git/ref/tags/* ]]; then
@@ -168,6 +178,12 @@ case "$command" in
 esac
 MOCK
 chmod +x "$mock"
+cat >"$temporary/bin/sleep" <<'MOCK'
+#!/usr/bin/env bash
+set -euo pipefail
+:
+MOCK
+chmod +x "$temporary/bin/sleep"
 export PATH="$temporary/bin:$PATH"
 
 asset_root="$temporary/input"
@@ -215,6 +231,25 @@ run_publisher
 [[ "$(jq -r '.immutable' "$MOCK_GH_STATE/release.json")" == true ]]
 cmp "$asset_root/alpha.json" "$MOCK_GH_STATE/assets/alpha.json"
 cmp "$asset_root/beta.json" "$MOCK_GH_STATE/assets/beta.json"
+
+new_state delayed-created-draft
+printf '3\n' >"$MOCK_GH_STATE/hide-created-release-for"
+run_publisher
+[[ "$(jq -r '.immutable' "$MOCK_GH_STATE/release.json")" == true ]]
+[[ "$(grep -c '^release create ' "$MOCK_GH_STATE/calls")" == 1 ]]
+
+new_state undiscoverable-created-draft
+printf '99\n' >"$MOCK_GH_STATE/hide-created-release-for"
+if ! expect_failure; then
+  echo 'An undiscoverable created draft unexpectedly succeeded.' >&2
+  exit 1
+fi
+[[ "$(grep -c '^release create ' "$MOCK_GH_STATE/calls")" == 1 ]]
+if grep -Eq '^release (upload|edit)|^api --method DELETE' "$MOCK_GH_STATE/calls"; then
+  echo 'Undiscoverable draft recovery mutated or created another release.' >&2
+  exit 1
+fi
+[[ "$(jq -r '.draft' "$MOCK_GH_STATE/release.json")" == true ]]
 
 new_state immutable
 seed_release false true
@@ -293,8 +328,13 @@ fi
 
 new_state bad-draft-target
 seed_release true false 0000000000000000000000000000000000000000
+printf '' >"$MOCK_GH_STATE/calls"
 if ! expect_failure; then
   echo 'Mismatched draft target was accepted.' >&2
+  exit 1
+fi
+if grep -Eq '^release (create|upload|edit)|^api --method DELETE' "$MOCK_GH_STATE/calls"; then
+  echo 'A draft owned by another source was mutated or overwritten.' >&2
   exit 1
 fi
 
