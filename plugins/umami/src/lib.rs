@@ -8,7 +8,7 @@ const COMMIT: &str = "ca661c7057984aa98ed4f7083d84dae2f65bfcb0";
 const BUILD_MIGRATION: &str = include_str!("../assets/build-migration.mjs");
 const MIGRATION_HANDLER: &str = include_str!("../assets/migration/index.mjs");
 const MIGRATION_CONTROL: &str = include_str!("../assets/migration/control.json");
-const MIGRATION_PACKAGE: &str = include_str!("../assets/migration/package.json");
+const MIGRATION_PACKAGE: &str = include_str!("../assets/migration/package.build.json");
 const MIGRATION_SHRINKWRAP: &[u8] = include_bytes!("../assets/migration/npm-shrinkwrap.json");
 
 pub fn recipe(request: &ApplyRequest) -> Result<Vec<Mutation>, RuntimeError> {
@@ -22,7 +22,7 @@ pub fn recipe(request: &ApplyRequest) -> Result<Vec<Mutation>, RuntimeError> {
             "sproutos/migration/npm-shrinkwrap.json",
             MIGRATION_SHRINKWRAP,
         ),
-        Mutation::own("sproutos/migration/package.json", MIGRATION_PACKAGE),
+        Mutation::own("sproutos/migration/package.build.json", MIGRATION_PACKAGE),
     ])
 }
 
@@ -203,6 +203,21 @@ mod tests {
             )
             .unwrap(),
             MIGRATION_SHRINKWRAP
+        );
+        assert_eq!(
+            fs::read_to_string(
+                workspace
+                    .path()
+                    .join("sproutos/migration/package.build.json")
+            )
+            .unwrap(),
+            MIGRATION_PACKAGE
+        );
+        assert!(
+            !workspace
+                .path()
+                .join("sproutos/migration/package.json")
+                .exists()
         );
         let config = fs::read_to_string(workspace.path().join(".config/sproutos.toml")).unwrap();
         assert!(config.contains("build-docker"));

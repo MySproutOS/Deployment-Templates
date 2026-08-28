@@ -31,9 +31,12 @@ for (const file of control.files) await verified(file.path, file.sha256);
 
 await rm(output, { recursive: true, force: true });
 await mkdir(output, { recursive: true });
-for (const name of ["index.mjs", "control.json", "package.json", "npm-shrinkwrap.json"]) {
+for (const name of ["index.mjs", "control.json", "npm-shrinkwrap.json"]) {
   await copyFile(`${source}/${name}`, `${output}/${name}`);
 }
+// Keep this npm-only manifest out of Umami's `packages: ['**']` pnpm workspace.
+// It becomes package.json only inside the isolated migration build artifact.
+await copyFile(`${source}/package.build.json`, `${output}/package.json`);
 await copyFile("prisma.config.ts", `${output}/prisma.config.ts`);
 await cp("prisma", `${output}/prisma`, { recursive: true });
 

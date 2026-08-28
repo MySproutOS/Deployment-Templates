@@ -68,7 +68,7 @@ cat >"$expected_status" <<'STATUS'
 ?? sproutos/migration/control.json
 ?? sproutos/migration/index.mjs
 ?? sproutos/migration/npm-shrinkwrap.json
-?? sproutos/migration/package.json
+?? sproutos/migration/package.build.json
 STATUS
 diff -u "$expected_status" "$actual_status"
 
