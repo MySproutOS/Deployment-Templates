@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "id": "umami",
+  "name": "Umami",
+  "pitch": "A simple, fast, privacy-focused alternative to Google Analytics.",
+  "description_md": "Umami provides privacy-friendly website analytics with an approachable dashboard and no cross-site tracking. This recipe deploys the pinned upstream release as a Next.js standalone service backed by managed PostgreSQL and a controlled migration artifact.",
+  "homepage": "https://umami.is",
+  "repository": {
+    "url": "https://github.com/umami-software/umami",
+    "commit": "ca661c7057984aa98ed4f7083d84dae2f65bfcb0"
+  },
+  "license": "MIT",
+  "platform": "web",
+  "readiness": {
+    "status": "blocked",
+    "blocked_reasons": [
+      "The controlled-migrations and Next.js standalone capabilities are not production-ready.",
+      "The pinned recipe has not completed the recorded end-to-end deployment pass."
+    ]
+  },
+  "plugin": {
+    "protocol_version": 1
+  },
+  "deployment": {
+    "preset": "next",
+    "runtime": "nodejs22.x",
+    "architecture": "arm64",
+    "migration": {
+      "kind": "artifact",
+      "path": ".sproutos/build/migration/index.mjs"
+    },
+    "required_capabilities": [
+      "controlled_migrations",
+      "next_standalone"
+    ]
+  },
+  "services": [
+    {
+      "key": "postgres",
+      "kind": "postgres",
+      "bindings": [
+        {
+          "environment": "DATABASE_URL",
+          "output": "connection_url"
+        }
+      ]
+    }
+  ],
+  "user_inputs": [],
+  "generated_inputs": [
+    {
+      "key": "app_secret",
+      "generator": "random_base64url",
+      "bytes": 32,
+      "environment": "APP_SECRET"
+    }
+  ]
+}

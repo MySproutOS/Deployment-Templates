@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "id": "memos",
+  "name": "Memos",
+  "pitch": "A privacy-first, lightweight note-taking service for capturing and sharing ideas.",
+  "description_md": "Memos is a self-hosted Go application with a web frontend for private notes, knowledge capture, and collaboration. This recipe deploys the pinned upstream release on the provided Amazon Linux 2023 runtime with managed PostgreSQL and managed object storage.",
+  "homepage": "https://usememos.com",
+  "repository": {
+    "url": "https://github.com/usememos/memos",
+    "commit": "22a5f3385b9fc5bdf282eb597aa3db79798aa5ab"
+  },
+  "license": "MIT",
+  "platform": "web",
+  "readiness": {
+    "status": "blocked",
+    "blocked_reasons": [
+      "The generic web, provided.al2023, and managed object-storage capabilities are not production-ready.",
+      "Memos live updates require a cross-instance SSE delivery capability before the service can scale beyond one execution environment.",
+      "Memos runs database migrations during startup without cross-instance serialization; production rollout needs a single-writer migration gate.",
+      "The pinned recipe has not completed the recorded end-to-end deployment pass."
+    ]
+  },
+  "plugin": {
+    "protocol_version": 1
+  },
+  "deployment": {
+    "preset": "web",
+    "runtime": "provided.al2023",
+    "architecture": "arm64",
+    "migration": null,
+    "required_capabilities": [
+      "generic_web",
+      "object_storage",
+      "provided_al2023",
+      "realtime_sse",
+      "serialized_startup_migrations"
+    ]
+  },
+  "services": [
+    {
+      "key": "object_storage",
+      "kind": "object_storage",
+      "bindings": [
+        {
+          "environment": "S3_ACCESS_KEY_ID",
+          "output": "access_key_id"
+        },
+        {
+          "environment": "S3_BUCKET_NAME",
+          "output": "bucket"
+        },
+        {
+          "environment": "S3_ENDPOINT",
+          "output": "endpoint"
+        },
+        {
+          "environment": "S3_FORCE_PATH_STYLE",
+          "output": "force_path_style"
+        },
+        {
+          "environment": "S3_REGION",
+          "output": "region"
+        },
+        {
+          "environment": "S3_SECRET_ACCESS_KEY",
+          "output": "secret_access_key"
+        }
+      ]
+    },
+    {
+      "key": "postgres",
+      "kind": "postgres",
+      "bindings": [
+        {
+          "environment": "MEMOS_DSN",
+          "output": "connection_url"
+        }
+      ]
+    }
+  ],
+  "user_inputs": [],
+  "generated_inputs": []
+}

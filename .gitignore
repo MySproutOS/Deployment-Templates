@@ -1,0 +1,8 @@
+/target/
+/.artifacts/
+/dist/
+/release/
+/catalogue/catalogue.json
+/catalogue/plugin-lock.json
+/catalogue/provenance.json
+.DS_Store

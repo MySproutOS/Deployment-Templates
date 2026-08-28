@@ -1,0 +1,9 @@
+{
+  "name": "sproutos-umami-migrator",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "prisma": "7.9.1"
+  }
+}

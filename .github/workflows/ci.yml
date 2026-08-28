@@ -1,0 +1,111 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  rust:
+    name: Rust workspace
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      # v7.0.1; full SHA is the only immutable action reference.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - run: cargo test --workspace --all-targets --locked
+
+  workflow-security:
+    name: Workflow security
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Shell syntax
+        run: bash -n scripts/ci/*.sh scripts/oci/*.sh plugins/*/tests/*.sh
+      - name: Shell lint
+        run: shellcheck scripts/ci/*.sh scripts/oci/*.sh plugins/*/tests/*.sh
+      - name: No mutable action references
+        run: |
+          set -euo pipefail
+          while IFS= read -r use; do
+            ref="${use##*@}"
+            ref="${ref%%[[:space:]]*}"
+            if [[ ! "$ref" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "External action is not pinned to a full commit SHA: $use" >&2
+              exit 1
+            fi
+          done < <(grep -RhE '^[[:space:]]*-[[:space:]]+uses:[[:space:]]+[^./][^[:space:]]+@' .github/workflows)
+
+  oci-assembly-smoke:
+    name: Offline OCI assembly smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      # v1; the action and installed ORAS release are both pinned.
+      - uses: oras-project/setup-oras@22ce207df3b08e061f537244349aac6ae1d214f6
+        with:
+          version: 1.3.0
+      - run: scripts/oci/smoke-test.sh
+
+  memos-pinned-upstream:
+    name: Memos pinned-upstream acceptance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+      # v6
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
+        with:
+          go-version: '1.27.0'
+      - name: Install the upstream-pinned package manager
+        run: |
+          corepack enable
+          corepack install --global pnpm@11.0.1
+          test "$(pnpm --version)" = 11.0.1
+      - run: plugins/memos/tests/pinned-upstream.sh
+
+  umami-pinned-upstream:
+    name: Umami pinned-upstream acceptance
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 45
+    steps:
+      # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22'
+      - name: Install the upstream-pinned package manager
+        run: |
+          corepack enable
+          corepack install --global pnpm@11.21.0
+          test "$(pnpm --version)" = 11.21.0
+      - run: plugins/umami/tests/pinned-upstream.sh

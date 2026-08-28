@@ -1,0 +1,326 @@
+name: Publish deployment catalogue
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - Cargo.lock
+      - Cargo.toml
+      - rust-toolchain.toml
+      - apps/**
+      - crates/**
+      - packages/**
+      - plugins/**
+      - schema/**
+      - catalogue/**
+      - scripts/**
+      - .github/workflows/publish.yml
+  workflow_dispatch:
+
+concurrency:
+  group: deployment-catalogue-publication
+  cancel-in-progress: false
+
+permissions: {}
+
+env:
+  REGISTRY_BASE: ghcr.io/mysproutos
+  SOURCE_URL: https://github.com/MySproutOS/Deployment-Templates
+
+jobs:
+  pinned-upstreams:
+    name: Memos pinned-upstream release acceptance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+      # v6
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
+        with:
+          go-version: '1.27.0'
+      - name: Install the upstream-pinned package manager
+        run: |
+          corepack enable
+          corepack install --global pnpm@11.0.1
+          test "$(pnpm --version)" = 11.0.1
+      - run: plugins/memos/tests/pinned-upstream.sh
+
+  umami-pinned-upstream:
+    name: Umami pinned-upstream release acceptance
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22'
+      - name: Install the upstream-pinned package manager
+        run: |
+          corepack enable
+          corepack install --global pnpm@11.21.0
+          test "$(pnpm --version)" = 11.21.0
+      - run: plugins/umami/tests/pinned-upstream.sh
+
+  prepare:
+    name: Validate source and discover release matrix
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Require protected main
+        run: test "$GITHUB_REF" = refs/heads/main
+      - name: Validate release source
+        run: |
+          cargo fmt --all --check
+          cargo clippy --workspace --all-targets --locked -- -D warnings
+          cargo test --workspace --all-targets --locked
+      - id: matrix
+        name: Discover plugin build matrix
+        run: echo "matrix=$(scripts/ci/discover-plugin-matrix.sh)" >>"$GITHUB_OUTPUT"
+
+  build:
+    name: Build ${{ matrix.id }} for ${{ matrix.target }}
+    needs: [pinned-upstreams, prepare, umami-pinned-upstream]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Install Rust target
+        run: rustup target add "$BUILD_TARGET"
+        shell: bash
+        env:
+          BUILD_TARGET: ${{ matrix.target }}
+      - name: Install musl linker
+        if: matrix.os == 'linux'
+        run: sudo apt-get update && sudo apt-get install --yes musl-tools
+      - name: Build twice and compare
+        run: |
+          scripts/ci/build-plugin.sh \
+            "$PLUGIN_PACKAGE" \
+            "$PLUGIN_BIN" \
+            "$PLUGIN_ID" \
+            "$BUILD_TARGET" \
+            "$BUILD_OS" \
+            "$BUILD_ARCH" \
+            "$EXECUTABLE_SUFFIX"
+        shell: bash
+        env:
+          PLUGIN_PACKAGE: ${{ matrix.package }}
+          PLUGIN_BIN: ${{ matrix.bin }}
+          PLUGIN_ID: ${{ matrix.id }}
+          BUILD_TARGET: ${{ matrix.target }}
+          BUILD_OS: ${{ matrix.os }}
+          BUILD_ARCH: ${{ matrix.arch }}
+          EXECUTABLE_SUFFIX: ${{ matrix.suffix }}
+      # v4; output artifacts are immutable in a run and digest-checked on download.
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: plugin-${{ matrix.id }}-${{ matrix.target }}
+          path: dist/plugins/${{ matrix.id }}/${{ matrix.target }}
+          if-no-files-found: error
+          retention-days: 2
+
+  assemble:
+    name: Assemble OCI layouts and catalogue
+    needs: [prepare, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    outputs:
+      subjects: ${{ steps.subjects.outputs.subjects }}
+    steps:
+      # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      # v5
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          pattern: plugin-*
+          path: dist/plugins
+      # v1; installs a verified ORAS release.
+      - uses: oras-project/setup-oras@22ce207df3b08e061f537244349aac6ae1d214f6
+        with:
+          version: 1.3.0
+      - name: Assemble deterministic OCI layouts and catalogue
+        run: >-
+          scripts/oci/assemble-release.sh
+          dist/plugins
+          release
+          "$REGISTRY_BASE"
+          "$SOURCE_URL"
+          "$GITHUB_SHA"
+          'cargo run --locked --quiet -p catalogue-generator --'
+      - id: subjects
+        run: echo "subjects=$(jq -c '{include:.subjects}' release/subjects.json)" >>"$GITHUB_OUTPUT"
+      # v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: release-inputs
+          path: release
+          if-no-files-found: error
+          retention-days: 2
+
+  publish-oci:
+    name: Publish and attest ${{ matrix.id }}
+    needs: assemble
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.assemble.outputs.subjects) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: catalogue-publication
+    permissions:
+      contents: read
+      packages: write # Copy content-addressed OCI layouts to GHCR.
+      id-token: write # Mint short-lived Fulcio certificates; no signing key is stored.
+      attestations: write # Persist GitHub's signed SLSA provenance.
+      artifact-metadata: write # Link the subject in the organization artifact inventory.
+    steps:
+      # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      # v5
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          name: release-inputs
+          path: release
+      # v1
+      - uses: oras-project/setup-oras@22ce207df3b08e061f537244349aac6ae1d214f6
+        with:
+          version: 1.3.0
+      # v4.1.0; installer verifies the Cosign release it installs.
+      - uses: sigstore/cosign-installer@ba7bc0a3fef59531c69a25acd34668d6d3fe6f22
+      - name: Authenticate to GHCR with the job-scoped token
+        run: printf '%s' "$GITHUB_TOKEN" | oras login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Copy immutable subject and keylessly sign its digest
+        run: scripts/oci/publish-subject.sh "release/$SUBJECT_LAYOUT" "$SUBJECT_NAME" "$SUBJECT_TAG" "$SUBJECT_DIGEST"
+        env:
+          COSIGN_IDENTITY: https://github.com/${{ github.repository }}/.github/workflows/publish.yml@${{ github.ref }}
+          SUBJECT_LAYOUT: ${{ matrix.layout }}
+          SUBJECT_NAME: ${{ matrix.name }}
+          SUBJECT_TAG: ${{ matrix.tag }}
+          SUBJECT_DIGEST: ${{ matrix.digest }}
+      # v4; emits signed SLSA provenance to GitHub and the OCI registry.
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+        with:
+          subject-name: ${{ matrix.name }}
+          subject-digest: ${{ matrix.digest }}
+          push-to-registry: true
+
+  verify-public:
+    name: Verify public supply-chain policy
+    needs: [assemble, publish-oci]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      # v5
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          name: release-inputs
+          path: release
+      # v1
+      - uses: oras-project/setup-oras@22ce207df3b08e061f537244349aac6ae1d214f6
+      # v4.1.0
+      - uses: sigstore/cosign-installer@ba7bc0a3fef59531c69a25acd34668d6d3fe6f22
+      - name: Verify anonymous pulls, signatures, provenance, and catalogue bytes
+        run: |
+          mkdir -p "$DOCKER_CONFIG"
+          scripts/oci/verify-public-release.sh release/subjects.json release/catalogue
+        env:
+          # A fresh config proves this job did not accidentally inherit registry credentials.
+          DOCKER_CONFIG: ${{ runner.temp }}/anonymous-docker-config
+          GH_TOKEN: ${{ github.token }}
+      - name: Explain GHCR bootstrap if anonymous verification failed
+        if: failure()
+        run: |
+          packages="$(jq -r '.subjects[].name | "- `" + . + "`"' release/subjects.json)"
+          cat >>"$GITHUB_STEP_SUMMARY" <<'EOF'
+          ## Public GHCR verification failed
+
+          New GHCR packages are private on first publication. An organization owner must make
+          every package below public in package settings, then rerun this workflow. Public GHCR
+          packages allow anonymous OCI pulls.
+          EOF
+          printf '\n%s\n' "$packages" >>"$GITHUB_STEP_SUMMARY"
+
+  release:
+    name: Publish immutable catalogue release
+    needs: [assemble, verify-public]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: catalogue-publication
+    permissions:
+      contents: write # Create the release tag, draft, and final immutable release.
+    steps:
+      # v5
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          name: release-inputs
+          path: release
+      - name: Publish immutable GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="catalogue-$GITHUB_SHA"
+          gh release create "$tag" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Deployment catalogue ${GITHUB_SHA:0:12}" \
+            --notes "Content-addressed deployment catalogue built from $GITHUB_SHA." \
+            --draft
+          gh release upload "$tag" \
+            --repo "$GITHUB_REPOSITORY" \
+            release/catalogue/catalogue.json \
+            release/catalogue/provenance.json \
+            release/catalogue/plugin-lock.json \
+            release/catalogue/SHA256SUMS \
+            release/subjects.json
+          gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false
+          immutable="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" --jq '.immutable')"
+          if [[ "$immutable" != true ]]; then
+            echo "Repository release immutability is not enabled; removing the unsafe release." >&2
+            gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes
+            exit 1
+          fi

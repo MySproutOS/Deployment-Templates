@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "upstreamCommit": "ca661c7057984aa98ed4f7083d84dae2f65bfcb0",
+  "prismaVersion": "7.9.1",
+  "prismaEngineCommit": "e922089b7d7502aff4249d5da3420f6fa55fc6ad",
+  "schemaSha256": "b9f47294b09620aa2c44156dabcfb96168d1cdf881c9e712b6be27901b051b89",
+  "configSha256": "595300143b355eb3ac53341ce46a41a3aa269370bb01d869fb8a8bd9577e59fe",
+  "engine": {
+    "url": "https://binaries.prisma.sh/all_commits/e922089b7d7502aff4249d5da3420f6fa55fc6ad/linux-arm64-openssl-3.0.x/schema-engine.gz",
+    "compressedSha256": "5993c9cb40ad3316e11ee10b6691e147719fd01287c4fd7a24045751e5d2a770",
+    "sha256": "d9a989479930b10d81b7e2bd8027723ca455189f402d4323ed452ae3a7a793cf",
+    "size": 21911536,
+    "target": "linux-arm64-openssl-3.0.x"
+  },
+  "files": [
+    { "path": "prisma/migrations/01_init/migration.sql", "sha256": "65f0f9ee4a3b432e7fa917795033254887497a849d95acf7d9cb4ff24b45f98f" },
+    { "path": "prisma/migrations/02_report_schema_session_data/migration.sql", "sha256": "4cc3c14482cb8700574cbdbdb478a93ccd1cabb0aeed37dfffb77a80278ce575" },
+    { "path": "prisma/migrations/03_metric_performance_index/migration.sql", "sha256": "baf86a7adc077bc46ea646d86aabc5f613aeb311e63894366979a18f6a9ca48c" },
+    { "path": "prisma/migrations/04_team_redesign/migration.sql", "sha256": "eb0e4ae2ef5204bc67ddb248358a402cd3bd88567d710f808f16c5124e5fd9cb" },
+    { "path": "prisma/migrations/05_add_visit_id/migration.sql", "sha256": "12e5b277e41da871b0768118937cef221c4d4f9c3206b719fffba86324df7a11" },
+    { "path": "prisma/migrations/06_session_data/migration.sql", "sha256": "fcd8585d077229bb2a16ae4705a79a5bc31cf6cbca089de99f4b1c19cb0a0a17" },
+    { "path": "prisma/migrations/07_add_tag/migration.sql", "sha256": "c38c9605d759b3b00f94076c929b6081d7dbd01a25d2955909fc8d1a6e3276b4" },
+    { "path": "prisma/migrations/08_add_utm_clid/migration.sql", "sha256": "ad640f709cd22434c088d577a2cf124c275fe3dc53ca249a542ae05af66b07b6" },
+    { "path": "prisma/migrations/09_update_hostname_region/migration.sql", "sha256": "e94d9993b17ac5c330ae3f872fd5869fb8095a3f3a7d31d2aaade73dc45fbe9c" },
+    { "path": "prisma/migrations/10_add_distinct_id/migration.sql", "sha256": "6ece5066ccec715ca8a07b65eafde7f96d110c0638b2d2187398fd1a79770ff6" },
+    { "path": "prisma/migrations/11_add_segment/migration.sql", "sha256": "e7421573e8b15f8a5c3e0928f1564ab43b3855d7c6634a36d87ece68196900e5" },
+    { "path": "prisma/migrations/12_update_report_parameter/migration.sql", "sha256": "f74b307b6e62c8457f32c4bae0beb99e26eb384467755912714abdfeae9e09af" },
+    { "path": "prisma/migrations/13_add_revenue/migration.sql", "sha256": "53180616f450ac033a60143ff9b7c3656205947809c7979a51991922e7f326ad" },
+    { "path": "prisma/migrations/14_add_link_and_pixel/migration.sql", "sha256": "2017fc23cad1365fa62fe1c18b70c631eb6a119a902f88672ffad63f90d80f3d" },
+    { "path": "prisma/migrations/15_add_share/migration.sql", "sha256": "11e97bd1bd36611c473ca7f518a8c8c1e66fba5b2798e72db224f7e20477eb74" },
+    { "path": "prisma/migrations/16_boards/migration.sql", "sha256": "5cef1484333ad14bcbbc3e1b2262601d3274a072d9656fb422530d112f98b447" },
+    { "path": "prisma/migrations/17_remove_duplicate_key/migration.sql", "sha256": "19ef24e157ab33d7a34b13d06c5ffc2eca95ae4f668c1ccbbe219e48a09d13b1" },
+    { "path": "prisma/migrations/18_add_performance/migration.sql", "sha256": "4ab4d1d954adfd3e65a327797b8fa2a528aa4377cbe03e2bd79b1d1c33c3b6ae" },
+    { "path": "prisma/migrations/19_add_session_replay/migration.sql", "sha256": "d0b6047a369c8aa04813fb06ac012c731777a9f3d602d491119f47e57aa2ec09" },
+    { "path": "prisma/migrations/20_add_heatmap/migration.sql", "sha256": "a52c3ae18fcfd73a49e5eaf445f701f0a6978abc96b8a0009aa27b100501663b" },
+    { "path": "prisma/migrations/21_add_session_link/migration.sql", "sha256": "10b4a7ba0b04bc14703b85787f66dfc6a83cd70abf80bcd528c83966c1effa7c" },
+    { "path": "prisma/migrations/22_add_2fa/migration.sql", "sha256": "e1e8a160496540e0b2fd28610a92f8b0a1b3e4fc1c857ca1d7f890e3667571b4" },
+    { "path": "prisma/migrations/23_update_session_data/migration.sql", "sha256": "5fc778b82bb34c3c04d78061e66d7036c3c51d0c506f5279f3c1cfc99f24f694" },
+    { "path": "prisma/migrations/24_lowercase_username/migration.sql", "sha256": "857c15672654ed5691a104aa1197e761718cbe75de0024c54d813ea19737bdba" },
+    { "path": "prisma/migrations/migration_lock.toml", "sha256": "99836963713b4f5b269ad49af0ed3d7b0b2e336115c2f92dc9ac683d139d0900" }
+  ]
+}

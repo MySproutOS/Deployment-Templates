@@ -1,0 +1,10 @@
+{
+  "memos": {
+    "repository": "https://github.com/usememos/memos",
+    "commit": "22a5f3385b9fc5bdf282eb597aa3db79798aa5ab"
+  },
+  "umami": {
+    "repository": "https://github.com/umami-software/umami",
+    "commit": "ca661c7057984aa98ed4f7083d84dae2f65bfcb0"
+  }
+}
