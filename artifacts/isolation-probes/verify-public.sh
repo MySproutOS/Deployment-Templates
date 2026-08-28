@@ -9,8 +9,8 @@ fi
 subjects_file="$1"
 expected_platforms='["darwin/amd64","darwin/arm64","linux/amd64","linux/arm64","windows/amd64"]'
 identity="https://github.com/${GITHUB_REPOSITORY}/.github/workflows/publish.yml@${GITHUB_REF}"
-[[ "$(jq -r '.sourceCommit' "$subjects_file")" == "$GITHUB_SHA" ]]
-[[ "$(jq -r '.workflow' "$subjects_file")" == .github/workflows/publish.yml ]]
+artifact_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+"$artifact_dir/validate-subjects.sh" "$subjects_file" "$GITHUB_SHA"
 
 while IFS= read -r subject; do
   kind="$(jq -r '.id' <<<"$subject")"

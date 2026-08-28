@@ -307,26 +307,15 @@ jobs:
         run: |
           set -euo pipefail
           tag="catalogue-$GITHUB_SHA"
-          gh release create "$tag" \
-            --repo "$GITHUB_REPOSITORY" \
-            --target "$GITHUB_SHA" \
-            --title "Deployment catalogue ${GITHUB_SHA:0:12}" \
-            --notes "Content-addressed deployment catalogue built from $GITHUB_SHA." \
-            --draft
-          gh release upload "$tag" \
-            --repo "$GITHUB_REPOSITORY" \
+          scripts/oci/publish-immutable-release.sh \
+            "$tag" \
+            "Deployment catalogue ${GITHUB_SHA:0:12}" \
+            "Content-addressed deployment catalogue built from $GITHUB_SHA." \
             release/catalogue/catalogue.json \
             release/catalogue/provenance.json \
             release/catalogue/plugin-lock.json \
             release/catalogue/SHA256SUMS \
             release/subjects.json
-          gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false
-          immutable="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" --jq '.immutable')"
-          if [[ "$immutable" != true ]]; then
-            echo "Repository release immutability is not enabled; removing the unsafe release." >&2
-            gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes
-            exit 1
-          fi
 
   isolation-proof-prepare:
     name: Validate isolation proof sources
@@ -564,21 +553,10 @@ jobs:
         run: |
           set -euo pipefail
           tag="isolation-proofs-$GITHUB_SHA"
-          gh release create "$tag" \
-            --repo "$GITHUB_REPOSITORY" \
-            --target "$GITHUB_SHA" \
-            --title "Isolation proofs ${GITHUB_SHA:0:12}" \
-            --notes "Three signed, catalogue-independent native isolation proof indexes." \
-            --draft
-          gh release upload "$tag" \
-            --repo "$GITHUB_REPOSITORY" \
+          scripts/oci/publish-immutable-release.sh \
+            "$tag" \
+            "Isolation proofs ${GITHUB_SHA:0:12}" \
+            "Three signed, catalogue-independent native isolation proof indexes." \
             release/isolation-probes/subjects.json \
             release/isolation-probes/source-lock.json \
             release/isolation-probes/SHA256SUMS
-          gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false
-          immutable="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" --jq '.immutable')"
-          if [[ "$immutable" != true ]]; then
-            echo "Repository release immutability is not enabled; removing the unsafe release." >&2
-            gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes
-            exit 1
-          fi
