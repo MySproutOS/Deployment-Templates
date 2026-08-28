@@ -112,6 +112,7 @@ jq -Sn \
   --argjson subjects "$subjects" \
   '{schemaVersion:1,sourceCommit:$source_commit,workflow:".github/workflows/publish.yml",subjects:$subjects}' \
   >"$release_dir/subjects.json"
+"$artifact_dir/validate-subjects.sh" "$release_dir/subjects.json" "$publication_commit"
 cp "$artifact_dir/source-lock.json" "$release_dir/source-lock.json"
 (
   cd "$release_dir"

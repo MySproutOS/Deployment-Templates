@@ -39,6 +39,10 @@ jobs:
         run: bash -n artifacts/*/*.sh scripts/ci/*.sh scripts/oci/*.sh plugins/*/tests/*.sh
       - name: Shell lint
         run: shellcheck artifacts/*/*.sh scripts/ci/*.sh scripts/oci/*.sh plugins/*/tests/*.sh
+      - name: Immutable release recovery
+        run: |
+          scripts/oci/test-publish-immutable-release.sh
+          artifacts/isolation-probes/test-validate-subjects.sh
       - name: Validate repository and generated workflows
         run: |
           set -euo pipefail
