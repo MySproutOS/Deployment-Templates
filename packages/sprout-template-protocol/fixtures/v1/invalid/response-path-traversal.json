@@ -1,0 +1,11 @@
+{
+  "status": "ok",
+  "protocol_version": 1,
+  "changes": [{
+    "path": "../outside",
+    "kind": "created",
+    "before_sha256": null,
+    "after_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+  }],
+  "warnings": []
+}

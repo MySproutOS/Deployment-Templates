@@ -1,0 +1,11 @@
+{
+  "status": "ok",
+  "protocol_version": 1,
+  "changes": [{
+    "path": "created.txt",
+    "kind": "created",
+    "before_sha256": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "after_sha256": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  }],
+  "warnings": []
+}

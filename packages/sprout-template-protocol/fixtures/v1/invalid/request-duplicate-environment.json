@@ -1,0 +1,16 @@
+{
+  "protocol_version": 1,
+  "workspace": "/workspace",
+  "template": {
+    "id": "umami",
+    "catalogue_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "manifest_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "plugin_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "upstream_repository": "https://github.com/umami-software/umami",
+    "upstream_commit": "ca661c7057984aa98ed4f7083d84dae2f65bfcb0"
+  },
+  "deployment": { "preset": "next", "capabilities": ["service.postgres"] },
+  "services": [{ "key": "database", "kind": "postgres", "bindings": [{ "environment": "DATABASE_URL", "output": "connection_url" }] }],
+  "user_inputs": [{ "key": "database_override", "type": "string", "environment": "DATABASE_URL", "required": false }],
+  "generated_inputs": []
+}

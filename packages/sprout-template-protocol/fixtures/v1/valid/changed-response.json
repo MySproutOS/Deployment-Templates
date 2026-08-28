@@ -1,0 +1,19 @@
+{
+  "status": "ok",
+  "protocol_version": 1,
+  "changes": [
+    {
+      "path": ".config/sproutos.toml",
+      "kind": "created",
+      "before_sha256": null,
+      "after_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    },
+    {
+      "path": "next.config.ts",
+      "kind": "modified",
+      "before_sha256": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "after_sha256": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    }
+  ],
+  "warnings": []
+}

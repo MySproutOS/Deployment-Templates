@@ -1,0 +1,8 @@
+{
+  "status": "error",
+  "protocol_version": 1,
+  "error": {
+    "code": "unsupported_upstream",
+    "message": "workspace is not the catalogue-pinned upstream commit"
+  }
+}
