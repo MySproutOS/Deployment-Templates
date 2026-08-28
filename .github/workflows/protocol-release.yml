@@ -1,0 +1,69 @@
+name: Release template protocol
+
+on:
+  push:
+    tags:
+      - protocol-v*
+
+permissions: {}
+
+concurrency:
+  group: protocol-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Package, attest, and release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Validate immutable version source
+        run: |
+          set -euo pipefail
+          version="$(sed -n 's/^version = "\([^"]*\)"$/\1/p' packages/sprout-template-protocol/Cargo.toml)"
+          test "$GITHUB_REF_NAME" = "protocol-v$version"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          cargo fmt --all --check
+          cargo test --locked -p sprout-template-protocol
+          cargo publish --locked --dry-run -p sprout-template-protocol
+      - name: Build deterministic release inputs
+        run: |
+          set -euo pipefail
+          cargo package --locked -p sprout-template-protocol
+          mkdir release
+          cp target/package/sprout-template-protocol-*.crate release/
+          (
+            cd release
+            sha256sum sprout-template-protocol-*.crate > SHA256SUMS
+          )
+      # v4; signs SLSA provenance with GitHub OIDC and persists it in GitHub's attestation store.
+      - id: attest
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+        with:
+          subject-path: release/sprout-template-protocol-*.crate
+      - name: Publish immutable GitHub release
+        run: |
+          set -euo pipefail
+          cp "$ATTESTATION_BUNDLE" "release/sprout-template-protocol-${GITHUB_REF_NAME#protocol-v}.intoto.jsonl"
+          notes_file="$(mktemp)"
+          printf '%s\n\n%s\n' \
+            "Supported Cargo Git revision: $GITHUB_SHA" \
+            "Pin \`sprout-template-protocol\` to this exact revision. The attached crate is checksum-bound by \`SHA256SUMS\` and its GitHub OIDC SLSA attestation. This release is not a crates.io publication." \
+            >"$notes_file"
+          gh release create "$GITHUB_REF_NAME" \
+            release/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --title "sprout-template-protocol ${GITHUB_REF_NAME#protocol-v}" \
+            --notes-file "$notes_file"
+        env:
+          ATTESTATION_BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+          GH_TOKEN: ${{ github.token }}
