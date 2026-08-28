@@ -12,6 +12,7 @@ const MAIN_AFTER: &[u8] = b"storeInstance.LoadSproutOSDeploymentConfiguration(ct
 const BUILD: &str = include_str!("../assets/build.sh");
 const RUN: &str = include_str!("../assets/run.sh");
 const STORAGE_BRIDGE: &str = include_str!("../assets/sproutos_deployment_config.go");
+const DEPLOY_WORKFLOW: &str = include_str!("../assets/sproutos-deploy.yml");
 
 pub fn recipe(request: &ApplyRequest) -> Result<Vec<Mutation>, RuntimeError> {
     validate_request(request)?;
@@ -27,6 +28,7 @@ pub fn recipe(request: &ApplyRequest) -> Result<Vec<Mutation>, RuntimeError> {
         Mutation::executable("sproutos/build.sh", BUILD),
         Mutation::executable("sproutos/run.sh", RUN),
         Mutation::own("store/sproutos_deployment_config.go", STORAGE_BRIDGE),
+        Mutation::own(".github/workflows/sproutos-deploy.yml", DEPLOY_WORKFLOW),
     ])
 }
 
@@ -257,7 +259,7 @@ mod tests {
         let workspace = workspace_with_upstream_main();
         let request = request(workspace.path().to_str().unwrap());
         let first = apply(&request, recipe).unwrap();
-        assert_eq!(first.len(), 5);
+        assert_eq!(first.len(), 6);
         assert_eq!(
             sprout_template_runtime::sha256(
                 &fs::read(workspace.path().join("cmd/memos/main.go")).unwrap()
@@ -274,6 +276,41 @@ mod tests {
             assert!(bridge.contains(environment));
         }
         assert!(!bridge.contains("os.WriteFile"));
+        let workflow = fs::read_to_string(
+            workspace
+                .path()
+                .join(".github/workflows/sproutos-deploy.yml"),
+        )
+        .unwrap();
+        assert_eq!(workflow, DEPLOY_WORKFLOW);
+        assert!(workflow.contains("on:\n  push:\n  workflow_dispatch:"));
+        assert!(workflow.contains(
+            "if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)"
+        ));
+        assert!(workflow.contains("permissions:\n      contents: read\n      id-token: write"));
+        assert!(workflow.contains("preset: web"));
+        assert!(workflow.contains("directory: .sproutos/dist"));
+        assert!(workflow.contains("runtime: provided.al2023"));
+        assert!(workflow.contains("handler: run.sh"));
+        assert_eq!(workflow.matches("contents: read").count(), 2);
+        assert_eq!(workflow.matches("id-token: write").count(), 1);
+        assert!(workflow.contains("artifact-ids: ${{ needs.build.outputs.artifact-id }}"));
+        assert!(workflow.contains("tar -xzf .sproutos/handoff/memos-deploy.tar.gz"));
+        assert!(!workflow.contains("secrets."));
+        assert!(!workflow.contains("SPROUTOS_TOKEN"));
+        assert!(!workflow.contains("\n          token:"));
+        assert!(!workflow.contains("\n          project:"));
+        assert!(!workflow.contains("/v1/"));
+        let action_commit = workflow
+            .lines()
+            .find_map(|line| {
+                line.trim()
+                    .strip_prefix("uses: MySproutOS/sproutos-deploy-action@")
+            })
+            .unwrap();
+        assert_eq!(action_commit.len(), 40);
+        assert!(action_commit.bytes().all(|byte| byte.is_ascii_hexdigit()));
+        assert_ne!(action_commit, "0000000000000000000000000000000000000000");
         assert!(apply(&request, recipe).unwrap().is_empty());
     }
 
