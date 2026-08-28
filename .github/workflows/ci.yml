@@ -42,6 +42,7 @@ jobs:
       - name: Immutable release recovery
         run: |
           scripts/oci/test-publish-immutable-release.sh
+          scripts/ci/test-publish-workflow.sh
           artifacts/isolation-probes/test-validate-subjects.sh
       - name: Validate repository and generated workflows
         run: |
