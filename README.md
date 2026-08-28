@@ -51,6 +51,19 @@ Publishing is tag- or manually gated; pull requests never push packages or catal
 
 ## Release model
 
+### Protocol 0.1.0 distribution
+
+The supported `sprout-template-protocol` 0.1.0 distribution is the exact Git revision
+`fea608ab7c8da209354e89df5fa4a98ee2cfcf45`, also named by the `protocol-v0.1.0` release tag:
+
+```toml
+sprout-template-protocol = { git = "https://github.com/MySproutOS/Deployment-Templates", rev = "fea608ab7c8da209354e89df5fa4a98ee2cfcf45", version = "=0.1.0" }
+```
+
+The GitHub release attaches the packaged crate, its `SHA256SUMS`, and GitHub OIDC-signed SLSA
+provenance. Version 0.1.0 is not published to crates.io; consumers must pin the revision above and
+commit Cargo's resolved source to `Cargo.lock`.
+
 1. Review and merge protocol, recipe, and catalogue source changes.
 2. Build every supported plugin target from a protected source ref.
 3. Assemble one deterministic OCI artifact per plugin and record the registry-reported digest.
