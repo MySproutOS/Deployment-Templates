@@ -1,0 +1,25 @@
+[package]
+name = "sprout-isolation-probes"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+rust-version = "1.93"
+publish = false
+
+[features]
+default = []
+smoke = []
+
+[[bin]]
+name = "success"
+path = "src/bin/success.rs"
+
+[[bin]]
+name = "stdout-flood"
+path = "src/bin/stdout_flood.rs"
+
+[[bin]]
+name = "fork-timeout"
+path = "src/bin/fork_timeout.rs"
+
+[workspace]
