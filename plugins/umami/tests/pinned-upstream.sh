@@ -57,6 +57,7 @@ first="$scratch/first.json"
 second="$scratch/second.json"
 "$plugin" <"$request" >"$first"
 grep -Fq '"status":"ok"' "$first"
+grep -Fq '"path":".github/workflows/sproutos-deploy.yml","kind":"created"' "$first"
 grep -Fq '"path":"sproutos/migration/index.mjs","kind":"created"' "$first"
 
 actual_status="$scratch/status"
@@ -64,6 +65,7 @@ expected_status="$scratch/expected-status"
 git -C "$checkout" status --porcelain=v1 --untracked-files=all | LC_ALL=C sort >"$actual_status"
 cat >"$expected_status" <<'STATUS'
 ?? .config/sproutos.toml
+?? .github/workflows/sproutos-deploy.yml
 ?? sproutos/build-migration.mjs
 ?? sproutos/migration/control.json
 ?? sproutos/migration/index.mjs

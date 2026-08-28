@@ -39,17 +39,31 @@ jobs:
         run: bash -n scripts/ci/*.sh scripts/oci/*.sh plugins/*/tests/*.sh
       - name: Shell lint
         run: shellcheck scripts/ci/*.sh scripts/oci/*.sh plugins/*/tests/*.sh
+      - name: Validate repository and generated workflows
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/actionlint.tar.gz"
+          curl --fail --location --proto '=https' --tlsv1.2 \
+            --output "$archive" \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  $archive" | sha256sum --check
+          tar -xzf "$archive" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" .github/workflows/*.yml plugins/*/assets/*.yml
       - name: No mutable action references
         run: |
           set -euo pipefail
           while IFS= read -r use; do
             ref="${use##*@}"
             ref="${ref%%[[:space:]]*}"
-            if [[ ! "$ref" =~ ^[0-9a-f]{40}$ ]]; then
+            if [[ ! "$ref" =~ ^[0-9a-f]{40}$ ]] || [[ "$ref" = 0000000000000000000000000000000000000000 ]]; then
               echo "External action is not pinned to a full commit SHA: $use" >&2
               exit 1
             fi
-          done < <(grep -RhE '^[[:space:]]*-[[:space:]]+uses:[[:space:]]+[^./][^[:space:]]+@' .github/workflows)
+          done < <(
+            grep -RhE \
+              '^[[:space:]]*(-[[:space:]]+)?uses:[[:space:]]+[^./][^[:space:]]+@' \
+              .github/workflows plugins/*/assets/*.yml
+          )
 
   oci-assembly-smoke:
     name: Offline OCI assembly smoke
@@ -100,7 +114,7 @@ jobs:
 
   memos-pinned-upstream:
     name: Memos pinned-upstream acceptance
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 45
     steps:
       # v7.0.1

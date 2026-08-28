@@ -10,6 +10,7 @@ const MIGRATION_HANDLER: &str = include_str!("../assets/migration/index.mjs");
 const MIGRATION_CONTROL: &str = include_str!("../assets/migration/control.json");
 const MIGRATION_PACKAGE: &str = include_str!("../assets/migration/package.build.json");
 const MIGRATION_SHRINKWRAP: &[u8] = include_bytes!("../assets/migration/npm-shrinkwrap.json");
+const DEPLOY_WORKFLOW: &str = include_str!("../assets/sproutos-deploy.yml");
 
 pub fn recipe(request: &ApplyRequest) -> Result<Vec<Mutation>, RuntimeError> {
     validate_request(request)?;
@@ -23,6 +24,7 @@ pub fn recipe(request: &ApplyRequest) -> Result<Vec<Mutation>, RuntimeError> {
             MIGRATION_SHRINKWRAP,
         ),
         Mutation::own("sproutos/migration/package.build.json", MIGRATION_PACKAGE),
+        Mutation::own(".github/workflows/sproutos-deploy.yml", DEPLOY_WORKFLOW),
     ])
 }
 
@@ -190,7 +192,7 @@ mod tests {
         let workspace = tempdir().unwrap();
         let request = request(workspace.path().to_str().unwrap());
         let first = apply(&request, recipe).unwrap();
-        assert_eq!(first.len(), 6);
+        assert_eq!(first.len(), 7);
         assert_eq!(
             fs::read_to_string(workspace.path().join("sproutos/migration/index.mjs")).unwrap(),
             MIGRATION_HANDLER
@@ -223,6 +225,42 @@ mod tests {
         assert!(config.contains("build-docker"));
         assert!(config.contains("directory = \".sproutos/build/migration\""));
         assert!(!config.contains("APP_SECRET ="));
+        let workflow = fs::read_to_string(
+            workspace
+                .path()
+                .join(".github/workflows/sproutos-deploy.yml"),
+        )
+        .unwrap();
+        assert_eq!(workflow, DEPLOY_WORKFLOW);
+        assert!(workflow.contains("on:\n  push:\n  workflow_dispatch:"));
+        assert!(workflow.contains(
+            "if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)"
+        ));
+        assert!(workflow.contains("permissions:\n      contents: read\n      id-token: write"));
+        assert!(workflow.contains("migration-directory: .sproutos/build/migration"));
+        assert!(workflow.contains("migration-handler: index.handler"));
+        assert_eq!(workflow.matches("contents: read").count(), 2);
+        assert_eq!(workflow.matches("id-token: write").count(), 1);
+        assert!(workflow.contains("artifact-ids: ${{ needs.build.outputs.artifact-id }}"));
+        assert!(workflow.contains("tar -xzf .sproutos/handoff/umami-deploy.tar.gz"));
+        assert!(
+            workflow.contains("set -- .next/standalone .next/static .sproutos/build/migration")
+        );
+        assert!(!workflow.contains("secrets."));
+        assert!(!workflow.contains("SPROUTOS_TOKEN"));
+        assert!(!workflow.contains("\n          token:"));
+        assert!(!workflow.contains("\n          project:"));
+        assert!(!workflow.contains("/v1/"));
+        let action_commit = workflow
+            .lines()
+            .find_map(|line| {
+                line.trim()
+                    .strip_prefix("uses: MySproutOS/sproutos-deploy-action@")
+            })
+            .unwrap();
+        assert_eq!(action_commit.len(), 40);
+        assert!(action_commit.bytes().all(|byte| byte.is_ascii_hexdigit()));
+        assert_ne!(action_commit, "0000000000000000000000000000000000000000");
         assert!(apply(&request, recipe).unwrap().is_empty());
     }
 

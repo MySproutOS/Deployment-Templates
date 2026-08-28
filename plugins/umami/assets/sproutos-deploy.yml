@@ -1,0 +1,81 @@
+name: Deploy Umami to SproutOS
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  build:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22'
+      - name: Install the upstream-pinned package manager
+        run: |
+          corepack enable
+          corepack install --global pnpm@11.21.0
+          test "$(pnpm --version)" = 11.21.0
+      - name: Install pinned dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build the application and controlled migrator
+        run: |
+          env -u VERCEL \
+            DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build \
+            DISABLE_TELEMETRY=1 \
+            pnpm run build-docker
+          node sproutos/build-migration.mjs
+          set -- .next/standalone .next/static .sproutos/build/migration
+          test ! -d public || set -- "$@" public
+          tar -czf .sproutos/umami-deploy.tar.gz "$@"
+      - name: Upload the exact deploy outputs
+        id: upload
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: sproutos-umami-build
+          path: .sproutos/umami-deploy.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+
+  deploy:
+    needs: build
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Download the run-scoped build artifact
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact-id }}
+          path: .sproutos/handoff
+          merge-multiple: true
+      - name: Restore and validate the exact deploy outputs
+        run: |
+          tar -xzf .sproutos/handoff/umami-deploy.tar.gz
+          test -d .next/standalone
+          test -d .next/static
+          test -f .sproutos/build/migration/index.mjs
+          test -x .sproutos/build/migration/schema-engine
+      - name: Deploy with GitHub OIDC
+        uses: MySproutOS/sproutos-deploy-action@0d5ce8bb74ecd598ae996c34d7d2cb5ac156a180
+        with:
+          preset: next
+          directory: .next/standalone
+          environment: production
+          runtime: nodejs22.x
+          migration-directory: .sproutos/build/migration
+          migration-handler: index.handler

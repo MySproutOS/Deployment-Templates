@@ -25,6 +25,16 @@ Published plugin artifacts are addressed by OCI digest. The generated catalogue 
 records those immutable digests plus its source provenance. Release workflows use GitHub OIDC for
 keyless signatures and attestations; no long-lived signing key belongs in this repository.
 
+Each plugin also owns the exact `.github/workflows/sproutos-deploy.yml` installed into a generated
+fork. That workflow builds the pinned application source on GitHub-hosted Actions, then invokes the
+deploy action at a full commit SHA. The control-plane worker applies and pushes the deterministic
+template but never installs dependencies or runs an application's build scripts. The generated
+workflow deploys only from the repository default branch, grants only `contents: read` and
+`id-token: write`, and exchanges GitHub OIDC for a short-lived repository-bound deploy token; it
+contains no SproutOS secret or stored token. Upstream dependency installation and build scripts run
+in a separate job that has no OIDC permission. Only a run-scoped artifact containing the exact build
+outputs crosses into the deploy job.
+
 ## Repository layout
 
 | Path | Purpose |

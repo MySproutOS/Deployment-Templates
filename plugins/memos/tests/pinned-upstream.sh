@@ -61,6 +61,7 @@ first="$scratch/first.json"
 second="$scratch/second.json"
 "$plugin" <"$request" >"$first"
 grep -Fq '"status":"ok"' "$first"
+grep -Fq '"path":".github/workflows/sproutos-deploy.yml","kind":"created"' "$first"
 grep -Fq '"path":"cmd/memos/main.go","kind":"modified"' "$first"
 test "$(sha256sum "$checkout/cmd/memos/main.go" | cut -d ' ' -f 1)" = \
   "d7e331555f9cdabcd2af749d39b62eac9962d8406cd118a2c3b12f2e088716be"
@@ -71,6 +72,7 @@ git -C "$checkout" status --porcelain=v1 --untracked-files=all | LC_ALL=C sort >
 cat >"$expected_status" <<'STATUS'
  M cmd/memos/main.go
 ?? .config/sproutos.toml
+?? .github/workflows/sproutos-deploy.yml
 ?? sproutos/build.sh
 ?? sproutos/run.sh
 ?? store/sproutos_deployment_config.go
@@ -83,7 +85,11 @@ grep -Fq '"changes":[]' "$second"
 test -z "$(gofmt -d "$checkout/store/sproutos_deployment_config.go")"
 (
   cd "$checkout"
+  test "$(uname -s)" = "Linux"
+  test "$(uname -m)" = "aarch64"
   go test ./store
   sh sproutos/build.sh
   file .sproutos/dist/memos | grep -Fq "ARM aarch64"
+  file .sproutos/dist/memos | grep -Fq "statically linked"
+  .sproutos/dist/memos --help >/dev/null
 )
