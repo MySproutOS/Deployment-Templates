@@ -237,15 +237,47 @@ fn canonical_workspace(raw: &str) -> Result<PathBuf, RuntimeError> {
             "workspace must be a normalized absolute path".into(),
         ));
     }
-    let canonical = path
-        .canonicalize()
+    let metadata = fs::symlink_metadata(path)
         .map_err(|error| RuntimeError::UnsafeWorkspace(error.to_string()))?;
-    if !canonical.is_dir() {
+    if workspace_is_link(&metadata) {
+        return Err(RuntimeError::UnsafeWorkspace(
+            "workspace must not be a symbolic link or reparse point".into(),
+        ));
+    }
+    if !metadata.is_dir() {
         return Err(RuntimeError::UnsafeWorkspace(
             "workspace is not a directory".into(),
         ));
     }
-    Ok(canonical)
+
+    #[cfg(windows)]
+    {
+        // Rust canonicalizes with GetFinalPathNameByHandleW(VOLUME_NAME_DOS). AppContainer tokens
+        // cannot query the global DOS-device namespace, so that API returns ACCESS_DENIED even
+        // when this exact directory is explicitly writable. The trusted Sprout caller supplies a
+        // normalized absolute staging root created without a reparse point; every recipe-owned
+        // descendant is checked again before use. Keep that usable path instead of weakening the
+        // AppContainer to grant object-manager namespace access.
+        Ok(path.to_path_buf())
+    }
+    #[cfg(not(windows))]
+    {
+        path.canonicalize()
+            .map_err(|error| RuntimeError::UnsafeWorkspace(error.to_string()))
+    }
+}
+
+#[cfg(windows)]
+fn workspace_is_link(metadata: &fs::Metadata) -> bool {
+    use std::os::windows::fs::MetadataExt;
+
+    const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
+    metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0
+}
+
+#[cfg(not(windows))]
+fn workspace_is_link(metadata: &fs::Metadata) -> bool {
+    metadata.file_type().is_symlink()
 }
 
 struct PlannedMutation {
@@ -516,5 +548,16 @@ mod tests {
         assert!(validate_relative("../outside").is_err());
         assert!(validate_relative(".git/config").is_err());
         assert!(validate_relative("valid/path").is_ok());
+    }
+
+    #[test]
+    fn accepts_a_normalized_absolute_workspace_directory() {
+        let workspace = tempfile::tempdir().unwrap();
+        let path = workspace.path().to_str().unwrap();
+        let accepted = canonical_workspace(path).unwrap();
+        #[cfg(windows)]
+        assert_eq!(accepted, workspace.path());
+        #[cfg(not(windows))]
+        assert_eq!(accepted, workspace.path().canonicalize().unwrap());
     }
 }
