@@ -145,6 +145,33 @@ fn generates_sorted_exact_plan_catalogue_and_acyclic_provenance() {
     );
     assert_eq!(memos["readiness"]["status"], "blocked");
     assert!(memos["readiness"]["e2e_evidence"].is_null());
+    assert!(
+        memos["description_md"]
+            .as_str()
+            .unwrap()
+            .contains("\n\nThis recipe builds the exact pinned upstream commit")
+    );
+    let memos_blockers = memos["readiness"]["blocked_reasons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|reason| reason.as_str().unwrap())
+        .collect::<Vec<_>>();
+    assert!(
+        memos_blockers
+            .iter()
+            .any(|reason| reason.contains("provided.al2023 executable bundle"))
+    );
+    assert!(
+        memos_blockers
+            .iter()
+            .any(|reason| reason.contains("buffers synchronous Lambda responses"))
+    );
+    assert!(
+        memos_blockers
+            .iter()
+            .all(|reason| !reason.contains("object-storage capabilities are not production-ready"))
+    );
 
     let umami = &catalogue["apps"][1];
     assert_eq!(
@@ -183,6 +210,19 @@ fn generates_sorted_exact_plan_catalogue_and_acyclic_provenance() {
         format!("sha256:{}", "1".repeat(64))
     );
     assert_eq!(umami["readiness"]["status"], "blocked");
+    assert!(umami["readiness"]["e2e_evidence"].is_null());
+    assert!(
+        umami["description_md"]
+            .as_str()
+            .unwrap()
+            .contains("\n\nThis recipe builds the exact pinned upstream commit")
+    );
+    assert_eq!(
+        umami["readiness"]["blocked_reasons"],
+        json!([
+            "The pinned Umami recipe has not completed a recorded production end-to-end pass covering its controlled migration, first publication, serving health, and a second deployment with persisted data."
+        ])
+    );
 
     let material_uris = provenance["materials"]
         .as_array()

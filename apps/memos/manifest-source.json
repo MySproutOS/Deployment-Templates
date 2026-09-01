@@ -3,7 +3,7 @@
   "id": "memos",
   "name": "Memos",
   "pitch": "A privacy-first, lightweight note-taking service for capturing and sharing ideas.",
-  "description_md": "Memos is a self-hosted Go application with a web frontend for private notes, knowledge capture, and collaboration. This recipe deploys the pinned upstream release on the provided Amazon Linux 2023 runtime with managed PostgreSQL and managed object storage.",
+  "description_md": "Memos is a lightweight, self-hosted workspace for private notes, knowledge capture, and sharing. Its web interface keeps short entries, tags, attachments, and collaborative context together without sending that content to a third-party notes service.\n\nThis recipe builds the exact pinned upstream commit into a statically linked Linux ARM64 executable with its web frontend included. SproutOS provisions managed PostgreSQL for application data and managed S3-compatible object storage for attachments, then injects the scoped connection values at runtime; storage and database credentials are never committed to the generated repository.\n\nThe generated repository contains the reviewed SproutOS configuration and GitHub Actions deployment workflow alongside the upstream source, leaving the build and future upstream updates inspectable by the project owner.",
   "homepage": "https://usememos.com",
   "repository": {
     "url": "https://github.com/usememos/memos",
@@ -14,10 +14,10 @@
   "readiness": {
     "status": "blocked",
     "blocked_reasons": [
-      "The generic web, provided.al2023, and managed object-storage capabilities are not production-ready.",
-      "Memos live updates require a cross-instance SSE delivery capability before the service can scale beyond one execution environment.",
+      "The generic web preset does not yet start the provided.al2023 executable bundle through the Lambda Web Adapter.",
+      "SproutOS ingress buffers synchronous Lambda responses, so Memos server-sent events cannot stream to clients.",
       "Memos runs database migrations during startup without cross-instance serialization; production rollout needs a single-writer migration gate.",
-      "The pinned recipe has not completed the recorded end-to-end deployment pass."
+      "The pinned Memos recipe has not completed a recorded production end-to-end pass covering startup, database persistence, object uploads, and live-update behavior."
     ]
   },
   "plugin": {
