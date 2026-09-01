@@ -3,7 +3,7 @@
   "id": "umami",
   "name": "Umami",
   "pitch": "A simple, fast, privacy-focused alternative to Google Analytics.",
-  "description_md": "Umami provides privacy-friendly website analytics with an approachable dashboard and no cross-site tracking. This recipe deploys the pinned upstream release as a Next.js standalone service backed by managed PostgreSQL and a controlled migration artifact.",
+  "description_md": "Umami provides privacy-friendly website analytics with an approachable dashboard and no cross-site tracking. Use it to understand page views, referrers, devices, and campaigns without adding an advertising network to your site.\n\nThis recipe builds the exact pinned upstream commit as a Next.js standalone service. SproutOS provisions managed PostgreSQL, generates a private 32-byte APP_SECRET, and runs the reviewed Prisma migration artifact before a new application version receives traffic. Secret values are injected at runtime and are never committed to the generated repository.\n\nThe generated repository keeps the upstream source and SproutOS deployment workflow in the open, so you can inspect the application, follow upstream changes, and redeploy through GitHub Actions.",
   "homepage": "https://umami.is",
   "repository": {
     "url": "https://github.com/umami-software/umami",
@@ -14,8 +14,7 @@
   "readiness": {
     "status": "blocked",
     "blocked_reasons": [
-      "The controlled-migrations and Next.js standalone capabilities are not production-ready.",
-      "The pinned recipe has not completed the recorded end-to-end deployment pass."
+      "The pinned Umami recipe has not completed a recorded production end-to-end pass covering its controlled migration, first publication, serving health, and a second deployment with persisted data."
     ]
   },
   "plugin": {
