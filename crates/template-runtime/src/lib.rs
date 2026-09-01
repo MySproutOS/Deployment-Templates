@@ -237,47 +237,34 @@ fn canonical_workspace(raw: &str) -> Result<PathBuf, RuntimeError> {
             "workspace must be a normalized absolute path".into(),
         ));
     }
-    let metadata = fs::symlink_metadata(path)
-        .map_err(|error| RuntimeError::UnsafeWorkspace(error.to_string()))?;
-    if workspace_is_link(&metadata) {
-        return Err(RuntimeError::UnsafeWorkspace(
-            "workspace must not be a symbolic link or reparse point".into(),
-        ));
-    }
-    if !metadata.is_dir() {
-        return Err(RuntimeError::UnsafeWorkspace(
-            "workspace is not a directory".into(),
-        ));
-    }
-
     #[cfg(windows)]
     {
-        // Rust canonicalizes with GetFinalPathNameByHandleW(VOLUME_NAME_DOS). AppContainer tokens
-        // cannot query the global DOS-device namespace, so that API returns ACCESS_DENIED even
-        // when this exact directory is explicitly writable. The trusted Sprout caller supplies a
-        // normalized absolute staging root created without a reparse point; every recipe-owned
-        // descendant is checked again before use. Keep that usable path instead of weakening the
-        // AppContainer to grant object-manager namespace access.
+        // Both Rust canonicalization and root metadata inspection use Windows handle operations
+        // that AppContainer tokens can be denied even when this exact directory has an explicit
+        // writable package ACE. The trusted Sprout caller creates a fresh staging root inside the
+        // per-run AppContainer profile, rejects links while copying into it, snapshots it before
+        // execution, and passes this normalized absolute path. Every recipe-owned descendant is
+        // checked again before use. Keep that usable path instead of weakening the AppContainer's
+        // object-manager or host-filesystem access.
         Ok(path.to_path_buf())
     }
     #[cfg(not(windows))]
     {
+        let metadata = fs::symlink_metadata(path)
+            .map_err(|error| RuntimeError::UnsafeWorkspace(error.to_string()))?;
+        if metadata.file_type().is_symlink() {
+            return Err(RuntimeError::UnsafeWorkspace(
+                "workspace must not be a symbolic link".into(),
+            ));
+        }
+        if !metadata.is_dir() {
+            return Err(RuntimeError::UnsafeWorkspace(
+                "workspace is not a directory".into(),
+            ));
+        }
         path.canonicalize()
             .map_err(|error| RuntimeError::UnsafeWorkspace(error.to_string()))
     }
-}
-
-#[cfg(windows)]
-fn workspace_is_link(metadata: &fs::Metadata) -> bool {
-    use std::os::windows::fs::MetadataExt;
-
-    const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
-    metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0
-}
-
-#[cfg(not(windows))]
-fn workspace_is_link(metadata: &fs::Metadata) -> bool {
-    metadata.file_type().is_symlink()
 }
 
 struct PlannedMutation {
