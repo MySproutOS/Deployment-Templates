@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "app_id": "umami",
+  "hostname": "umami-production-acceptance-20260902-v2-a29a8c.sproutos.run",
+  "upstream_commit": "ca661c7057984aa98ed4f7083d84dae2f65bfcb0",
+  "plugin_digest": "sha256:38adde1de3f544d9fae5bed47fd8739bf3a7a3f5b831705ff68ffcfc2f6d8a88",
+  "tested_at": "2026-09-02T16:45:07Z",
+  "passed": true,
+  "project": {
+    "repository": "TestSproutOS/sproutos-umami-production-acceptance-20260902-v2",
+    "id": "01a06281-952d-7526-affb-295cada29a8c"
+  },
+  "deployment_runs": [
+    {
+      "url": "https://github.com/TestSproutOS/sproutos-umami-production-acceptance-20260902-v2/actions/runs/33648636646",
+      "conclusion": "success"
+    },
+    {
+      "url": "https://github.com/TestSproutOS/sproutos-umami-production-acceptance-20260902-v2/actions/runs/33650839560",
+      "conclusion": "success"
+    }
+  ],
+  "checks": [
+    { "name": "controlled migration succeeded before both publications", "passed": true },
+    { "name": "production heartbeat and application route returned HTTP 200", "passed": true },
+    { "name": "public upstream default administrator password was refused", "passed": true },
+    { "name": "generated administrator credential authenticated successfully", "passed": true },
+    { "name": "website persistence marker was created through the authenticated API", "passed": true },
+    { "name": "fresh authentication after the second deployment succeeded", "passed": true },
+    { "name": "the exact website marker id persisted across the second deployment", "passed": true },
+    { "name": "Android Mobile MCP rendered the production Umami sign-in UI", "passed": true }
+  ]
+}

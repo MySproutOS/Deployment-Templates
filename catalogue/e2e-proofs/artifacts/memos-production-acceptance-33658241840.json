@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "app_id": "memos",
+  "hostname": "memos-production-acceptance-20260902-v3-3a1cca.sproutos.run",
+  "upstream_commit": "22a5f3385b9fc5bdf282eb597aa3db79798aa5ab",
+  "plugin_digest": "sha256:22f7b0eff2c5bb8d0dafd0d03b7756bcf69a8c5aa1573e00487e873f03c2b539",
+  "tested_at": "2026-09-02T16:58:23Z",
+  "passed": true,
+  "project": {
+    "repository": "TestSproutOS/sproutos-memos-production-acceptance-20260902-v3",
+    "id": "01a06281-4404-7606-9bee-3c17543a1cca"
+  },
+  "deployment_runs": [
+    {
+      "url": "https://github.com/TestSproutOS/sproutos-memos-production-acceptance-20260902-v3/actions/runs/33656109370",
+      "conclusion": "success"
+    },
+    {
+      "url": "https://github.com/TestSproutOS/sproutos-memos-production-acceptance-20260902-v3/actions/runs/33656445726",
+      "conclusion": "success"
+    }
+  ],
+  "checks": [
+    { "name": "controlled migration succeeded before both corrected publications", "passed": true },
+    { "name": "production root and health route returned HTTP 200", "passed": true },
+    { "name": "provided runtime used bootstrap with the arm64 web adapter layer and no managed-runtime wrapper", "passed": true },
+    { "name": "generated administrator credential authenticated successfully", "passed": true },
+    { "name": "private memo persistence marker was created after the first deployment", "passed": true },
+    { "name": "managed object-storage attachment returned the exact uploaded bytes", "passed": true },
+    { "name": "fresh authentication after the second deployment succeeded", "passed": true },
+    { "name": "the exact private memo persisted across the second deployment", "passed": true },
+    { "name": "the exact managed object-storage attachment persisted across the second deployment", "passed": true },
+    { "name": "production bundle contains the five-second visible-tab polling and visibility lifecycle", "passed": true },
+    { "name": "signed-in production page displayed an externally created private memo after the five-second visible-tab polling window without reload", "passed": true },
+    { "name": "Android Mobile MCP rendered the production Memos sign-in UI", "passed": true }
+  ]
+}

@@ -12,10 +12,8 @@
   "license": "MIT",
   "platform": "web",
   "readiness": {
-    "status": "blocked",
-    "blocked_reasons": [
-      "The pinned Memos recipe has not completed a recorded production end-to-end pass covering controlled migration, fail-closed administrator bootstrap, first launch, database and attachment persistence across a second deployment, and the visible-tab polling lifecycle."
-    ]
+    "status": "live",
+    "blocked_reasons": []
   },
   "plugin": {
     "protocol_version": 1
