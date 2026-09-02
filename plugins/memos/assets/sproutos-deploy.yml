@@ -30,10 +30,10 @@ jobs:
           corepack enable
           corepack install --global pnpm@11.0.1
           test "$(pnpm --version)" = 11.0.1
-      - name: Build the static Linux ARM64 web executable
+      - name: Build the static Linux ARM64 application and controlled migrator
         run: |
           sh sproutos/build.sh
-          tar -czf .sproutos/memos-deploy.tar.gz .sproutos/dist
+          tar -czf .sproutos/memos-deploy.tar.gz .sproutos/dist .sproutos/migration
       - name: Upload the exact deploy outputs
         id: upload
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -63,11 +63,14 @@ jobs:
           tar -xzf .sproutos/handoff/memos-deploy.tar.gz
           test -x .sproutos/dist/memos
           test -x .sproutos/dist/run.sh
+          test -x .sproutos/migration/bootstrap
       - name: Deploy with GitHub OIDC
-        uses: MySproutOS/sproutos-deploy-action@0d5ce8bb74ecd598ae996c34d7d2cb5ac156a180
+        uses: MySproutOS/sproutos-deploy-action@18b8eff90fec9ff847698d109eba56c17d8332bb
         with:
           preset: web
           directory: .sproutos/dist
           environment: production
           runtime: provided.al2023
           handler: run.sh
+          migration-directory: .sproutos/migration
+          migration-handler: bootstrap

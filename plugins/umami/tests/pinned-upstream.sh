@@ -44,12 +44,20 @@ cat >"$request" <<JSON
     "bindings": [{"environment": "DATABASE_URL", "output": "connection_url"}]
   }],
   "user_inputs": [],
-  "generated_inputs": [{
-    "key": "app_secret",
-    "generator": "random_base64url",
-    "bytes": 32,
-    "environment": "APP_SECRET"
-  }]
+  "generated_inputs": [
+    {
+      "key": "admin_password",
+      "generator": "random_base64url",
+      "bytes": 32,
+      "environment": "UMAMI_ADMIN_PASSWORD"
+    },
+    {
+      "key": "app_secret",
+      "generator": "random_base64url",
+      "bytes": 32,
+      "environment": "APP_SECRET"
+    }
+  ]
 }
 JSON
 
@@ -86,10 +94,14 @@ grep -Fq '"changes":[]' "$second"
     pnpm run build-docker
   node sproutos/build-migration.mjs
   test -d .next/standalone
+  grep -Fq 'APP_SECRET must contain at least 32 bytes' .next/standalone/server.js
+  test -f .next/standalone/sproutos-umami-server.js
   test -f .sproutos/build/migration/index.mjs
   test -f .sproutos/build/migration/control.json
   test -x .sproutos/build/migration/schema-engine
   test "$(sha256sum .sproutos/build/migration/schema-engine | cut -d ' ' -f 1)" = \
     "d9a989479930b10d81b7e2bd8027723ca455189f402d4323ed452ae3a7a793cf"
   node --check .sproutos/build/migration/index.mjs
+  npm audit --omit=dev --audit-level=high --prefix .sproutos/build/migration
+  "$root/plugins/umami/tests/runtime-e2e.sh" "$checkout"
 )

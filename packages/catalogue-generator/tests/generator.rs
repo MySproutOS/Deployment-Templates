@@ -131,17 +131,29 @@ fn generates_sorted_exact_plan_catalogue_and_acyclic_provenance() {
     assert_eq!(
         memos["deployment"]["required_capabilities"],
         json!([
+            "controlled_migrations",
             "generic_web",
             "object_storage",
-            "provided_al2023",
-            "realtime_sse",
-            "serialized_startup_migrations"
+            "provided_al2023"
         ])
+    );
+    assert_eq!(
+        memos["deployment"]["migration"]["path"],
+        ".sproutos/migration/bootstrap"
     );
     assert_eq!(memos["services"][0]["kind"], "object_storage");
     assert_eq!(
         memos["services"][1]["bindings"][0]["environment"],
         "MEMOS_DSN"
+    );
+    assert_eq!(
+        memos["generated_inputs"][0],
+        json!({
+            "bytes": 32,
+            "environment": "MEMOS_ADMIN_PASSWORD",
+            "generator": "random_base64url",
+            "key": "admin_password"
+        })
     );
     assert_eq!(memos["readiness"]["status"], "blocked");
     assert!(memos["readiness"]["e2e_evidence"].is_null());
@@ -157,15 +169,37 @@ fn generates_sorted_exact_plan_catalogue_and_acyclic_provenance() {
         .iter()
         .map(|reason| reason.as_str().unwrap())
         .collect::<Vec<_>>();
+    assert_eq!(memos_blockers.len(), 1);
+    assert!(memos_blockers[0].contains("recorded production end-to-end pass"));
     assert!(
-        memos_blockers
-            .iter()
-            .any(|reason| reason.contains("provided.al2023 executable bundle"))
+        memos["description_md"]
+            .as_str()
+            .unwrap()
+            .contains("visible-tab polling")
     );
     assert!(
-        memos_blockers
-            .iter()
-            .any(|reason| reason.contains("buffers synchronous Lambda responses"))
+        memos["description_md"]
+            .as_str()
+            .unwrap()
+            .contains("sole initial account")
+    );
+    assert!(
+        memos["description_md"]
+            .as_str()
+            .unwrap()
+            .contains("Public registration starts disabled")
+    );
+    assert!(
+        memos["description_md"]
+            .as_str()
+            .unwrap()
+            .contains("never reset an owner-changed password")
+    );
+    assert!(
+        memos["description_md"]
+            .as_str()
+            .unwrap()
+            .contains("eventual refresh rather than instantaneous realtime delivery")
     );
     assert!(
         memos_blockers
@@ -186,8 +220,19 @@ fn generates_sorted_exact_plan_catalogue_and_acyclic_provenance() {
         umami["repository"]["commit"],
         upstream_lock["umami"]["commit"]
     );
+    assert_eq!(umami["name"], "Umami");
+    assert_eq!(
+        umami["pitch"],
+        "A simple, fast, privacy-focused alternative to Google Analytics."
+    );
+    assert_eq!(umami["homepage"], "https://umami.is");
+    assert_eq!(umami["license"], "MIT");
     assert_eq!(umami["deployment"]["preset"], "next");
     assert_eq!(umami["deployment"]["runtime"], "nodejs22.x");
+    assert_eq!(
+        umami["deployment"]["required_capabilities"],
+        json!(["controlled_migrations", "next_standalone"])
+    );
     assert_eq!(
         umami["deployment"]["migration"]["path"],
         ".sproutos/build/migration/index.mjs"
@@ -196,10 +241,22 @@ fn generates_sorted_exact_plan_catalogue_and_acyclic_provenance() {
         umami["services"][0]["bindings"][0]["environment"],
         "DATABASE_URL"
     );
-    assert_eq!(umami["generated_inputs"][0]["environment"], "APP_SECRET");
     assert_eq!(
-        umami["generated_inputs"][0]["generator"],
-        "random_base64url"
+        umami["generated_inputs"],
+        json!([
+            {
+                "bytes": 32,
+                "environment": "UMAMI_ADMIN_PASSWORD",
+                "generator": "random_base64url",
+                "key": "admin_password"
+            },
+            {
+                "bytes": 32,
+                "environment": "APP_SECRET",
+                "generator": "random_base64url",
+                "key": "app_secret"
+            }
+        ])
     );
     assert_eq!(
         umami["plugin"]["repository"],
@@ -215,7 +272,13 @@ fn generates_sorted_exact_plan_catalogue_and_acyclic_provenance() {
         umami["description_md"]
             .as_str()
             .unwrap()
-            .contains("\n\nThis recipe builds the exact pinned upstream commit")
+            .contains("## First sign-in")
+    );
+    assert!(
+        umami["description_md"]
+            .as_str()
+            .unwrap()
+            .contains("`UMAMI_ADMIN_PASSWORD`")
     );
     assert_eq!(
         umami["readiness"]["blocked_reasons"],

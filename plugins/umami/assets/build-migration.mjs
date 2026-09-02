@@ -6,6 +6,15 @@ import { gunzipSync } from "node:zlib";
 
 const source = "sproutos/migration";
 const output = ".sproutos/build/migration";
+const standaloneServer = ".next/standalone/server.js";
+const upstreamStandaloneServer = ".next/standalone/sproutos-umami-server.js";
+const runtimePreflight = `const appSecret = process.env.APP_SECRET;
+if (!appSecret || Buffer.byteLength(appSecret, "utf8") < 32) {
+  console.error("APP_SECRET must contain at least 32 bytes");
+  process.exit(1);
+}
+await import("./sproutos-umami-server.js");
+`;
 
 function digest(bytes) {
   return createHash("sha256").update(bytes).digest("hex");
@@ -58,4 +67,12 @@ if (digest(engine) !== control.engine.sha256 || engine.length !== control.engine
 await writeFile(`${output}/schema-engine`, engine, { mode: 0o755 });
 await chmod(`${output}/schema-engine`, 0o755);
 
-console.log(`built controlled Umami migrator in ${path.resolve(output)}`);
+const currentServer = await readFile(standaloneServer);
+if (currentServer.toString("utf8") !== runtimePreflight) {
+  await writeFile(upstreamStandaloneServer, currentServer);
+  await writeFile(standaloneServer, runtimePreflight);
+} else {
+  await readFile(upstreamStandaloneServer);
+}
+
+console.log(`built controlled Umami migrator and runtime preflight in ${path.resolve(output)}`);

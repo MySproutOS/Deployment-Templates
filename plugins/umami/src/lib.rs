@@ -66,19 +66,34 @@ fn validate_request(request: &ApplyRequest) -> Result<(), RuntimeError> {
             "Umami Postgres must bind connection_url to DATABASE_URL".into(),
         ));
     }
-    if request.generated_inputs.len() != 1 {
+    if request.generated_inputs.len() != 2 {
         return Err(RuntimeError::InvalidRequest(
-            "Umami requires the generated APP_SECRET input".into(),
+            "Umami requires generated administrator and application secrets".into(),
         ));
     }
-    let secret = &request.generated_inputs[0];
-    if secret.key != "app_secret"
-        || secret.environment != "APP_SECRET"
-        || secret.generator != Generator::RandomBase64url
-        || secret.bytes != 32
-    {
+    let admin_password = request
+        .generated_inputs
+        .iter()
+        .find(|input| input.key == "admin_password");
+    let app_secret = request
+        .generated_inputs
+        .iter()
+        .find(|input| input.key == "app_secret");
+    if !matches!(
+        admin_password,
+        Some(input)
+            if input.environment == "UMAMI_ADMIN_PASSWORD"
+                && input.generator == Generator::RandomBase64url
+                && input.bytes == 32
+    ) || !matches!(
+        app_secret,
+        Some(input)
+            if input.environment == "APP_SECRET"
+                && input.generator == Generator::RandomBase64url
+                && input.bytes == 32
+    ) {
         return Err(RuntimeError::InvalidRequest(
-            "Umami APP_SECRET must be 32 random_base64url bytes".into(),
+            "Umami secrets must each be 32 random_base64url bytes".into(),
         ));
     }
     Ok(())
@@ -124,6 +139,12 @@ kind = "postgres"
 [[services.bindings]]
 environment = "DATABASE_URL"
 output = "connection_url"
+
+[[generated_inputs]]
+key = "admin_password"
+environment = "UMAMI_ADMIN_PASSWORD"
+generator = "random_base64url"
+bytes = 32
 
 [[generated_inputs]]
 key = "app_secret"
@@ -178,12 +199,20 @@ mod tests {
                 }],
             }],
             user_inputs: vec![],
-            generated_inputs: vec![GeneratedInput {
-                key: "app_secret".into(),
-                generator: Generator::RandomBase64url,
-                bytes: 32,
-                environment: "APP_SECRET".into(),
-            }],
+            generated_inputs: vec![
+                GeneratedInput {
+                    key: "admin_password".into(),
+                    generator: Generator::RandomBase64url,
+                    bytes: 32,
+                    environment: "UMAMI_ADMIN_PASSWORD".into(),
+                },
+                GeneratedInput {
+                    key: "app_secret".into(),
+                    generator: Generator::RandomBase64url,
+                    bytes: 32,
+                    environment: "APP_SECRET".into(),
+                },
+            ],
         }
     }
 
@@ -224,7 +253,10 @@ mod tests {
         let config = fs::read_to_string(workspace.path().join(".config/sproutos.toml")).unwrap();
         assert!(config.contains("build-docker"));
         assert!(config.contains("directory = \".sproutos/build/migration\""));
+        assert!(config.contains("environment = \"UMAMI_ADMIN_PASSWORD\""));
         assert!(!config.contains("APP_SECRET ="));
+        assert!(BUILD_MIGRATION.contains("APP_SECRET must contain at least 32 bytes"));
+        assert!(BUILD_MIGRATION.contains("sproutos-umami-server.js"));
         let workflow = fs::read_to_string(
             workspace
                 .path()
@@ -272,6 +304,18 @@ mod tests {
         assert!(matches!(
             apply(&request, recipe),
             Err(RuntimeError::UnsupportedUpstream(_))
+        ));
+        assert!(fs::read_dir(workspace.path()).unwrap().next().is_none());
+    }
+
+    #[test]
+    fn refuses_weakened_administrator_secret_before_writing() {
+        let workspace = tempdir().unwrap();
+        let mut request = request(workspace.path().to_str().unwrap());
+        request.generated_inputs[0].bytes = 31;
+        assert!(matches!(
+            apply(&request, recipe),
+            Err(RuntimeError::InvalidRequest(_))
         ));
         assert!(fs::read_dir(workspace.path()).unwrap().next().is_none());
     }
