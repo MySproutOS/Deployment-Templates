@@ -211,7 +211,7 @@ architecture = "arm64"
 capabilities = ["controlled_migrations", "generic_web", "object_storage", "provided_al2023"]
 build_command = "sh sproutos/build.sh"
 directory = ".sproutos/dist"
-handler = "run.sh"
+handler = "bootstrap"
 health_path = "/healthz"
 
 [deployment.environment]
@@ -398,7 +398,8 @@ mod tests {
         assert!(workflow.contains("preset: web"));
         assert!(workflow.contains("directory: .sproutos/dist"));
         assert!(workflow.contains("runtime: provided.al2023"));
-        assert!(workflow.contains("handler: run.sh"));
+        assert!(workflow.contains("handler: bootstrap"));
+        assert!(workflow.contains("test -x .sproutos/dist/bootstrap"));
         assert!(workflow.contains("migration-directory: .sproutos/migration"));
         assert!(workflow.contains("migration-handler: bootstrap"));
         assert!(workflow.contains("test -x .sproutos/migration/bootstrap"));
@@ -424,7 +425,7 @@ mod tests {
         let config = fs::read_to_string(workspace.path().join(".config/sproutos.toml")).unwrap();
         assert!(config.contains("[deployment.migration]"));
         assert!(config.contains("directory = \".sproutos/migration\""));
-        assert!(config.contains("handler = \"bootstrap\""));
+        assert_eq!(config.matches("handler = \"bootstrap\"").count(), 2);
         assert!(config.contains("runtime = \"provided.al2023\""));
         assert!(config.contains("key = \"admin_password\""));
         assert!(config.contains("environment = \"MEMOS_ADMIN_PASSWORD\""));

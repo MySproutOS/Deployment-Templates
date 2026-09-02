@@ -25,5 +25,7 @@ CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build \
   -ldflags "-s -w -X github.com/usememos/memos/internal/version.Version=${version} -X github.com/usememos/memos/internal/version.Commit=${expected_commit} -extldflags '-static'" \
   -o .sproutos/migration/bootstrap \
   ./cmd/sproutos-migrate
-cp sproutos/run.sh .sproutos/dist/run.sh
-chmod 0755 .sproutos/dist/memos .sproutos/dist/run.sh .sproutos/migration/bootstrap
+# AWS custom runtimes always start an executable named `bootstrap` from the deployment archive
+# root. The Lambda Handler field is not an alternate entrypoint for `provided.al2023`.
+cp sproutos/run.sh .sproutos/dist/bootstrap
+chmod 0755 .sproutos/dist/memos .sproutos/dist/bootstrap .sproutos/migration/bootstrap
