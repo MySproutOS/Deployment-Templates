@@ -220,8 +220,19 @@ fn generates_sorted_exact_plan_catalogue_and_acyclic_provenance() {
         umami["repository"]["commit"],
         upstream_lock["umami"]["commit"]
     );
+    assert_eq!(umami["name"], "Umami");
+    assert_eq!(
+        umami["pitch"],
+        "A simple, fast, privacy-focused alternative to Google Analytics."
+    );
+    assert_eq!(umami["homepage"], "https://umami.is");
+    assert_eq!(umami["license"], "MIT");
     assert_eq!(umami["deployment"]["preset"], "next");
     assert_eq!(umami["deployment"]["runtime"], "nodejs22.x");
+    assert_eq!(
+        umami["deployment"]["required_capabilities"],
+        json!(["controlled_migrations", "next_standalone"])
+    );
     assert_eq!(
         umami["deployment"]["migration"]["path"],
         ".sproutos/build/migration/index.mjs"
@@ -230,10 +241,22 @@ fn generates_sorted_exact_plan_catalogue_and_acyclic_provenance() {
         umami["services"][0]["bindings"][0]["environment"],
         "DATABASE_URL"
     );
-    assert_eq!(umami["generated_inputs"][0]["environment"], "APP_SECRET");
     assert_eq!(
-        umami["generated_inputs"][0]["generator"],
-        "random_base64url"
+        umami["generated_inputs"],
+        json!([
+            {
+                "bytes": 32,
+                "environment": "UMAMI_ADMIN_PASSWORD",
+                "generator": "random_base64url",
+                "key": "admin_password"
+            },
+            {
+                "bytes": 32,
+                "environment": "APP_SECRET",
+                "generator": "random_base64url",
+                "key": "app_secret"
+            }
+        ])
     );
     assert_eq!(
         umami["plugin"]["repository"],
@@ -249,7 +272,13 @@ fn generates_sorted_exact_plan_catalogue_and_acyclic_provenance() {
         umami["description_md"]
             .as_str()
             .unwrap()
-            .contains("\n\nThis recipe builds the exact pinned upstream commit")
+            .contains("## First sign-in")
+    );
+    assert!(
+        umami["description_md"]
+            .as_str()
+            .unwrap()
+            .contains("`UMAMI_ADMIN_PASSWORD`")
     );
     assert_eq!(
         umami["readiness"]["blocked_reasons"],

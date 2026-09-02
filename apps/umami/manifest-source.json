@@ -3,7 +3,7 @@
   "id": "umami",
   "name": "Umami",
   "pitch": "A simple, fast, privacy-focused alternative to Google Analytics.",
-  "description_md": "Umami provides privacy-friendly website analytics with an approachable dashboard and no cross-site tracking. Use it to understand page views, referrers, devices, and campaigns without adding an advertising network to your site.\n\nThis recipe builds the exact pinned upstream commit as a Next.js standalone service. SproutOS provisions managed PostgreSQL, generates a private 32-byte APP_SECRET, and runs the reviewed Prisma migration artifact before a new application version receives traffic. Secret values are injected at runtime and are never committed to the generated repository.\n\nThe generated repository keeps the upstream source and SproutOS deployment workflow in the open, so you can inspect the application, follow upstream changes, and redeploy through GitHub Actions.",
+  "description_md": "Umami provides privacy-friendly website analytics with an approachable dashboard and no cross-site tracking. Use it to understand page views, referrers, devices, campaigns, custom events, and conversion goals without adding an advertising network to your site.\n\n## What this installation includes\n\n- The exact reviewed Umami 3.3.1 upstream commit, built as a Linux ARM64 Next.js standalone service.\n- Managed PostgreSQL for durable analytics and account data across deployments.\n- A controlled, digest-checked Prisma migrator that must succeed before new application code receives traffic.\n- Private 32-byte application and initial-administrator secrets generated and envelope-encrypted by SproutOS. Secret values are injected only at runtime and are never committed to the generated repository.\n\n## First sign-in\n\nSign in with username `admin` and the generated `UMAMI_ADMIN_PASSWORD`. An authorized project member can reveal that value from the project's Environment page, where the reveal is audited. The controlled migration replaces Umami's public upstream default password before the first deployment can serve requests. Change the generated password in Umami after signing in; later deployments preserve an owner-changed password.\n\nThe generated repository keeps the upstream source, SproutOS configuration, and deployment workflow in the open, so you can inspect the application, follow upstream changes, and redeploy through GitHub Actions. Umami is provided under the MIT license, and analytics data remains in your project's managed PostgreSQL database.",
   "homepage": "https://umami.is",
   "repository": {
     "url": "https://github.com/umami-software/umami",
@@ -47,6 +47,12 @@
   ],
   "user_inputs": [],
   "generated_inputs": [
+    {
+      "key": "admin_password",
+      "generator": "random_base64url",
+      "bytes": 32,
+      "environment": "UMAMI_ADMIN_PASSWORD"
+    },
     {
       "key": "app_secret",
       "generator": "random_base64url",

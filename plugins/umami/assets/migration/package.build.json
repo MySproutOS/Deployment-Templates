@@ -4,6 +4,12 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "bcryptjs": "3.0.3",
+    "pg": "8.22.0",
     "prisma": "7.9.1"
+  },
+  "overrides": {
+    "deepmerge-ts": "8.0.0",
+    "mysql2": "3.22.0"
   }
 }
