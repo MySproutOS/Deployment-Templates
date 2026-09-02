@@ -12,10 +12,8 @@
   "license": "MIT",
   "platform": "web",
   "readiness": {
-    "status": "blocked",
-    "blocked_reasons": [
-      "The pinned Umami recipe has not completed a recorded production end-to-end pass covering its controlled migration, first publication, serving health, and a second deployment with persisted data."
-    ]
+    "status": "live",
+    "blocked_reasons": []
   },
   "plugin": {
     "protocol_version": 1

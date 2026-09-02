@@ -28,10 +28,23 @@ fn fixture() -> (TempDir, GenerateOptions) {
     let root = repository_root();
     let temp = tempfile::tempdir().unwrap();
     for id in ["umami", "memos"] {
+        let manifest_path = temp.path().join(format!("apps/{id}/manifest-source.json"));
         copy_file(
             root.join(format!("apps/{id}/manifest-source.json")),
-            temp.path().join(format!("apps/{id}/manifest-source.json")),
+            &manifest_path,
         );
+        let mut manifest = read_json(&manifest_path);
+        let blocked_reason = match id {
+            "memos" => {
+                "The pinned Memos recipe has not completed a recorded production end-to-end pass covering controlled migration, fail-closed administrator bootstrap, first launch, database and attachment persistence across a second deployment, and the visible-tab polling lifecycle."
+            }
+            "umami" => {
+                "The pinned Umami recipe has not completed a recorded production end-to-end pass covering its controlled migration, first publication, serving health, and a second deployment with persisted data."
+            }
+            _ => unreachable!(),
+        };
+        manifest["readiness"] = json!({"status":"blocked","blocked_reasons":[blocked_reason]});
+        fs::write(&manifest_path, serde_json::to_vec(&manifest).unwrap()).unwrap();
     }
     for name in [
         "app-manifest-v1.schema.json",
@@ -438,7 +451,7 @@ fn checked_in_catalogue_and_provenance_goldens_are_current() {
     let temp = tempfile::tempdir().unwrap();
     let options = GenerateOptions {
         apps_dir: root.join("apps"),
-        plugin_lock: root.join("tests/fixtures/plugin-lock.json"),
+        plugin_lock: root.join("tests/fixtures/live-plugin-lock.json"),
         output: temp.path().join("catalogue.json"),
         provenance_output: temp.path().join("provenance.json"),
         manifest_schema: root.join("schema/app-manifest-v1.schema.json"),
@@ -447,7 +460,7 @@ fn checked_in_catalogue_and_provenance_goldens_are_current() {
         protocol_schema_dir: root.join("packages/sprout-template-protocol/schema"),
         protocol_source_dir: root.join("packages/sprout-template-protocol"),
         plugin_source_dir: root.join("plugins"),
-        e2e_proof_dir: root.join("tests/fixtures/e2e-proofs"),
+        e2e_proof_dir: root.join("catalogue/e2e-proofs"),
         source_repository: "MySproutOS/Deployment-Templates".into(),
         source_workflow: ".github/workflows/publish.yml".into(),
         source_ref: "refs/heads/main".into(),

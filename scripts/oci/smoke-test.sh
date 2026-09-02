@@ -16,6 +16,17 @@ generator="$root/target/debug/catalogue-generator"
 mkdir -p "$scratch/packages" "$scratch/catalogue"
 cp -R "$root/apps" "$root/schema" "$root/plugins" "$scratch/"
 cp -R "$root/packages/sprout-template-protocol" "$scratch/packages/"
+# This smoke test deliberately assembles synthetic plugin binaries, so their OCI
+# digests cannot match production evidence. Keep the copied catalogue sources
+# blocked here; the generator suite separately validates the checked-in live
+# manifests against their exact detached evidence and production plugin digests.
+for manifest in "$scratch"/apps/*/manifest-source.json; do
+  jq '.readiness = {
+    status: "blocked",
+    blocked_reasons: ["Offline OCI smoke uses synthetic plugin binaries."]
+  }' "$manifest" >"$manifest.tmp"
+  mv "$manifest.tmp" "$manifest"
+done
 if [[ -d "$root/catalogue/e2e-proofs" ]]; then
   cp -R "$root/catalogue/e2e-proofs" "$scratch/catalogue/"
 fi

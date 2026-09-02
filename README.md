@@ -9,9 +9,11 @@ The first recipes target:
 - Umami at `ca661c7057984aa98ed4f7083d84dae2f65bfcb0`.
 - Memos at `22a5f3385b9fc5bdf282eb597aa3db79798aa5ab`.
 
-Both entries are intentionally blocked from publication as live listings until SproutOS exposes
-their declared capabilities and the pinned recipe completes a real end-to-end deployment. A green
-unit test is not live-deployment evidence.
+Both entries carry detached production acceptance evidence bound to their exact upstream commit and
+plugin digest. The recorded runs cover controlled migrations, serving health, generated-owner
+authentication, and persistence across a second deployment; Memos additionally covers managed
+object storage and its bounded visible-tab refresh adaptation. A green unit test alone is not
+live-deployment evidence.
 
 ## Trust boundary
 

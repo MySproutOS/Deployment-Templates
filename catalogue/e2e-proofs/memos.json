@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "app_id": "memos",
+  "upstream_commit": "22a5f3385b9fc5bdf282eb597aa3db79798aa5ab",
+  "plugin_digest": "sha256:22f7b0eff2c5bb8d0dafd0d03b7756bcf69a8c5aa1573e00487e873f03c2b539",
+  "preset": "web",
+  "required_capabilities": [
+    "controlled_migrations",
+    "generic_web",
+    "object_storage",
+    "provided_al2023"
+  ],
+  "passed": true,
+  "workflow_run_url": "https://github.com/MySproutOS/Deployment-Templates/actions/runs/33658241840",
+  "tested_at": "2026-09-02T16:58:23Z",
+  "evidence_path": "artifacts/memos-production-acceptance-33658241840.json",
+  "evidence_digest": "sha256:021f851b29a4f5b0ce6984aad6f287e640fbab93768cecfb672263a21655ce71"
+}

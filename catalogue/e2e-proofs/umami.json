@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "app_id": "umami",
+  "upstream_commit": "ca661c7057984aa98ed4f7083d84dae2f65bfcb0",
+  "plugin_digest": "sha256:38adde1de3f544d9fae5bed47fd8739bf3a7a3f5b831705ff68ffcfc2f6d8a88",
+  "preset": "next",
+  "required_capabilities": ["controlled_migrations", "next_standalone"],
+  "passed": true,
+  "workflow_run_url": "https://github.com/MySproutOS/Deployment-Templates/actions/runs/33656904850",
+  "tested_at": "2026-09-02T16:45:07Z",
+  "evidence_path": "artifacts/umami-production-acceptance-33656904850.json",
+  "evidence_digest": "sha256:a88009fd11d5a8ec4bdd2878b23314c5bea52516bbd189c2a5c7f6786ccf8c3a"
+}
