@@ -3,7 +3,7 @@
   "id": "memos",
   "name": "Memos",
   "pitch": "A privacy-first, lightweight note-taking service for capturing and sharing ideas.",
-  "description_md": "Memos is a lightweight, self-hosted workspace for private notes, knowledge capture, and sharing. Its web interface keeps short entries, tags, attachments, and collaborative context together without sending that content to a third-party notes service.\n\nThis recipe builds the exact pinned upstream commit into a statically linked Linux ARM64 executable with its web frontend included. SproutOS provisions managed PostgreSQL for application data and managed S3-compatible object storage for attachments, then injects the scoped connection values at runtime; storage and database credentials are never committed to the generated repository.\n\nThe generated repository contains the reviewed SproutOS configuration and GitHub Actions deployment workflow alongside the upstream source, leaving the build and future upstream updates inspectable by the project owner.",
+  "description_md": "Memos is a lightweight, self-hosted workspace for private notes, knowledge capture, and sharing. Its web interface keeps short entries, tags, attachments, and collaborative context together without sending that content to a third-party notes service.\n\nSproutOS generates a private 32-byte MEMOS_ADMIN_PASSWORD and creates the sole initial account, username `admin`, before the site receives traffic. After installation, open the project's **Environment** page, reveal MEMOS_ADMIN_PASSWORD, and sign in as `admin`; every reveal is audited. Change the password in Memos after signing in. Later deployments never reset an owner-changed password, so the generated value stops working after that change. Public registration starts disabled, and the administrator can opt in later from Memos settings.\n\nThis recipe builds the exact pinned upstream commit into a statically linked Linux ARM64 executable with its web frontend included. SproutOS provisions managed PostgreSQL for accounts and notes plus managed S3-compatible object storage for attachments, then injects scoped connection values at runtime; credentials are never committed to the generated repository. A dedicated migration artifact updates the database and performs the one-time ownership bootstrap before a new application version receives traffic, while the request-serving process cannot migrate or claim the first administrator at startup.\n\nSproutOS currently buffers Lambda responses, so this recipe replaces Memos' long-lived SSE connection with visible-tab polling. Changes made by another user or tab appear within about five seconds while the page is visible, and returning to a backgrounded page triggers an immediate refresh. This is eventual refresh rather than instantaneous realtime delivery. The generated repository keeps every adaptation and its deployment workflow inspectable by the project owner.",
   "homepage": "https://usememos.com",
   "repository": {
     "url": "https://github.com/usememos/memos",
@@ -14,10 +14,7 @@
   "readiness": {
     "status": "blocked",
     "blocked_reasons": [
-      "The generic web preset does not yet start the provided.al2023 executable bundle through the Lambda Web Adapter.",
-      "SproutOS ingress buffers synchronous Lambda responses, so Memos server-sent events cannot stream to clients.",
-      "Memos runs database migrations during startup without cross-instance serialization; production rollout needs a single-writer migration gate.",
-      "The pinned Memos recipe has not completed a recorded production end-to-end pass covering startup, database persistence, object uploads, and live-update behavior."
+      "The pinned Memos recipe has not completed a recorded production end-to-end pass covering controlled migration, fail-closed administrator bootstrap, first launch, database and attachment persistence across a second deployment, and the visible-tab polling lifecycle."
     ]
   },
   "plugin": {
@@ -27,13 +24,15 @@
     "preset": "web",
     "runtime": "provided.al2023",
     "architecture": "arm64",
-    "migration": null,
+    "migration": {
+      "kind": "artifact",
+      "path": ".sproutos/migration/bootstrap"
+    },
     "required_capabilities": [
+      "controlled_migrations",
       "generic_web",
       "object_storage",
-      "provided_al2023",
-      "realtime_sse",
-      "serialized_startup_migrations"
+      "provided_al2023"
     ]
   },
   "services": [
@@ -79,5 +78,12 @@
     }
   ],
   "user_inputs": [],
-  "generated_inputs": []
+  "generated_inputs": [
+    {
+      "key": "admin_password",
+      "generator": "random_base64url",
+      "bytes": 32,
+      "environment": "MEMOS_ADMIN_PASSWORD"
+    }
+  ]
 }

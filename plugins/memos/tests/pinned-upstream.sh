@@ -31,7 +31,7 @@ cat >"$request" <<JSON
   },
   "deployment": {
     "preset": "web",
-    "capabilities": ["generic_web", "object_storage", "provided_al2023", "realtime_sse", "serialized_startup_migrations"]
+    "capabilities": ["controlled_migrations", "generic_web", "object_storage", "provided_al2023"]
   },
   "services": [
     {
@@ -53,7 +53,14 @@ cat >"$request" <<JSON
     }
   ],
   "user_inputs": [],
-  "generated_inputs": []
+  "generated_inputs": [
+    {
+      "key": "admin_password",
+      "generator": "random_base64url",
+      "bytes": 32,
+      "environment": "MEMOS_ADMIN_PASSWORD"
+    }
+  ]
 }
 JSON
 
@@ -64,32 +71,48 @@ grep -Fq '"status":"ok"' "$first"
 grep -Fq '"path":".github/workflows/sproutos-deploy.yml","kind":"created"' "$first"
 grep -Fq '"path":"cmd/memos/main.go","kind":"modified"' "$first"
 test "$(sha256sum "$checkout/cmd/memos/main.go" | cut -d ' ' -f 1)" = \
-  "d7e331555f9cdabcd2af749d39b62eac9962d8406cd118a2c3b12f2e088716be"
+  "ece466288c4adb1adadc89ce537d29ac25180dc6fef3d3955ecd893b65f37d92"
+test "$(sha256sum "$checkout/web/src/hooks/useLiveMemoRefresh.ts" | cut -d ' ' -f 1)" = \
+  "05b2cbef1a164ea21c2aecdc9c6cb1522069bf914815baf4fcb000f88cf31067"
+if grep -Eq 'EventSource|fetch\("/api/v1/sse"' "$checkout/web/src/hooks/useLiveMemoRefresh.ts"; then
+  echo "generated live-refresh hook still opens an SSE connection" >&2
+  exit 1
+fi
 
 actual_status="$scratch/status"
 expected_status="$scratch/expected-status"
 git -C "$checkout" status --porcelain=v1 --untracked-files=all | LC_ALL=C sort >"$actual_status"
 cat >"$expected_status" <<'STATUS'
  M cmd/memos/main.go
+ M web/src/hooks/useLiveMemoRefresh.ts
 ?? .config/sproutos.toml
 ?? .github/workflows/sproutos-deploy.yml
+?? cmd/sproutos-migrate/main.go
+?? cmd/sproutos-migrate/main_test.go
 ?? sproutos/build.sh
 ?? sproutos/run.sh
 ?? store/sproutos_deployment_config.go
+?? web/tests/sproutos-live-polling.test.ts
 STATUS
 diff -u "$expected_status" "$actual_status"
 
 "$plugin" <"$request" >"$second"
 grep -Fq '"changes":[]' "$second"
 
-test -z "$(gofmt -d "$checkout/store/sproutos_deployment_config.go")"
+test -z "$(gofmt -d \
+  "$checkout/store/sproutos_deployment_config.go" \
+  "$checkout/cmd/sproutos-migrate/main.go" \
+  "$checkout/cmd/sproutos-migrate/main_test.go")"
 (
   cd "$checkout"
   test "$(uname -s)" = "Linux"
   test "$(uname -m)" = "aarch64"
-  go test ./store
+  go test ./store ./cmd/sproutos-migrate
   sh sproutos/build.sh
+  corepack pnpm@11.0.1 --dir web exec vitest run tests/sproutos-live-polling.test.ts
   file .sproutos/dist/memos | grep -Fq "ARM aarch64"
   file .sproutos/dist/memos | grep -Fq "statically linked"
+  file .sproutos/migration/bootstrap | grep -Fq "ARM aarch64"
+  file .sproutos/migration/bootstrap | grep -Fq "statically linked"
   .sproutos/dist/memos --help >/dev/null
 )
