@@ -112,6 +112,7 @@ test -z "$(gofmt -d \
   corepack pnpm@11.0.1 --dir web exec vitest run tests/sproutos-live-polling.test.ts
   file .sproutos/dist/memos | grep -Fq "ARM aarch64"
   file .sproutos/dist/memos | grep -Fq "statically linked"
+  test -x .sproutos/dist/bootstrap
   file .sproutos/migration/bootstrap | grep -Fq "ARM aarch64"
   file .sproutos/migration/bootstrap | grep -Fq "statically linked"
   .sproutos/dist/memos --help >/dev/null
