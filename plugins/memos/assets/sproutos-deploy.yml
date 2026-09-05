@@ -65,7 +65,7 @@ jobs:
           test -x .sproutos/dist/bootstrap
           test -x .sproutos/migration/bootstrap
       - name: Deploy with GitHub OIDC
-        uses: MySproutOS/sproutos-deploy-action@18b8eff90fec9ff847698d109eba56c17d8332bb
+        uses: MySproutOS/sproutos-deploy-action@92e480886c7656e004c5bdf817e9733b35fd8c18
         with:
           preset: web
           directory: .sproutos/dist
