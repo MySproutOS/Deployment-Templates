@@ -4,6 +4,13 @@ This repository is the canonical, public source for SproutOS App Store catalogue
 deployment-template plugins. Catalogue entries select an exact upstream commit and an immutable
 plugin artifact. They never discover templates from files in an application repository.
 
+## Contributing an app
+
+Want to add an open-source website or application to SproutOS? Open [`PROMPT.md`](PROMPT.md), copy
+the prompt, and paste it into Codex, Claude Code, or another coding agent. The agent will help you
+choose an application or start from a GitHub repository you provide, prepare the recipe, run the
+required checks, and verify a disposable deployment in a real browser.
+
 The first recipes target:
 
 - Umami at `ca661c7057984aa98ed4f7083d84dae2f65bfcb0`.
