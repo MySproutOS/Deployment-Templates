@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "app_id": "umami",
+  "hostname": "umami-production-acceptance-20260902-v2-a29a8c.sproutos.run",
+  "upstream_commit": "ca661c7057984aa98ed4f7083d84dae2f65bfcb0",
+  "plugin_digest": "sha256:6d42923e62767ea91f49f9d9626b9c06b88df4b5221836c91bfa1222197100d8",
+  "tested_at": "2026-09-05T23:17:18Z",
+  "passed": true,
+  "project": {
+    "repository": "TestSproutOS/sproutos-umami-production-acceptance-20260902-v2",
+    "id": "01a06281-952d-7526-affb-295cada29a8c"
+  },
+  "deployment_runs": [
+    {
+      "url": "https://github.com/TestSproutOS/sproutos-umami-production-acceptance-20260902-v2/actions/runs/33997761505",
+      "conclusion": "success"
+    },
+    {
+      "url": "https://github.com/TestSproutOS/sproutos-umami-production-acceptance-20260902-v2/actions/runs/33997942887",
+      "conclusion": "success"
+    }
+  ],
+  "checks": [
+    { "name": "controlled migration succeeded before both publications", "passed": true },
+    { "name": "production heartbeat and application route returned HTTP 200 after the second publication", "passed": true },
+    { "name": "both deployments recorded nodejs24.x with run.sh and reached ready", "passed": true },
+    { "name": "both deployments used the Node 24 workflow and function-aware CLI action", "passed": true }
+  ]
+}

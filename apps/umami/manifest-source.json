@@ -12,10 +12,8 @@
   "license": "MIT",
   "platform": "web",
   "readiness": {
-    "status": "blocked",
-    "blocked_reasons": [
-      "The Node.js 24 and action v1.0.3 generated workflow is awaiting a renewed production end-to-end pass bound to its exact plugin digest."
-    ]
+    "status": "live",
+    "blocked_reasons": []
   },
   "plugin": {
     "protocol_version": 1

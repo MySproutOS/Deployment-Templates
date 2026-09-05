@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "plugins": {
     "memos": {
-      "artifact": "ghcr.io/mysproutos/memos-plugin@sha256:22f7b0eff2c5bb8d0dafd0d03b7756bcf69a8c5aa1573e00487e873f03c2b539"
+      "artifact": "ghcr.io/mysproutos/memos-plugin@sha256:21e47814eb29934903b3ec96b0d25827b2137fab7ff26ce3f6a4084896a19028"
     },
     "umami": {
-      "artifact": "ghcr.io/mysproutos/umami-plugin@sha256:38adde1de3f544d9fae5bed47fd8739bf3a7a3f5b831705ff68ffcfc2f6d8a88"
+      "artifact": "ghcr.io/mysproutos/umami-plugin@sha256:6d42923e62767ea91f49f9d9626b9c06b88df4b5221836c91bfa1222197100d8"
     }
   }
 }
