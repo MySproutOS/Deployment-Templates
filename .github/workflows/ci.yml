@@ -217,7 +217,7 @@ jobs:
       # v6
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
-          node-version: '22'
+          node-version: '24'
       - name: Install the upstream-pinned package manager
         run: |
           corepack enable

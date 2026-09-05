@@ -10,7 +10,7 @@ checkout="$scratch/umami"
 
 test "$(uname -s)" = "Linux"
 test "$(uname -m)" = "aarch64"
-test "$(node -p 'process.versions.node.split(".")[0]')" = "22"
+test "$(node -p 'process.versions.node.split(".")[0]')" = "24"
 test "$(pnpm --version)" = "11.21.0"
 
 git init --quiet "$checkout"

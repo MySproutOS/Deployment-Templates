@@ -21,7 +21,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
-          node-version: '22'
+          node-version: '24'
       - name: Install the upstream-pinned package manager
         run: |
           corepack enable
@@ -71,11 +71,11 @@ jobs:
           test -f .sproutos/build/migration/index.mjs
           test -x .sproutos/build/migration/schema-engine
       - name: Deploy with GitHub OIDC
-        uses: MySproutOS/sproutos-deploy-action@0d5ce8bb74ecd598ae996c34d7d2cb5ac156a180
+        uses: MySproutOS/sproutos-deploy-action@92e480886c7656e004c5bdf817e9733b35fd8c18
         with:
           preset: next
           directory: .next/standalone
           environment: production
-          runtime: nodejs22.x
+          runtime: nodejs24.x
           migration-directory: .sproutos/build/migration
           migration-handler: index.handler
