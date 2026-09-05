@@ -241,7 +241,7 @@ fn generates_sorted_exact_plan_catalogue_and_acyclic_provenance() {
     assert_eq!(umami["homepage"], "https://umami.is");
     assert_eq!(umami["license"], "MIT");
     assert_eq!(umami["deployment"]["preset"], "next");
-    assert_eq!(umami["deployment"]["runtime"], "nodejs22.x");
+    assert_eq!(umami["deployment"]["runtime"], "nodejs24.x");
     assert_eq!(
         umami["deployment"]["required_capabilities"],
         json!(["controlled_migrations", "next_standalone"])

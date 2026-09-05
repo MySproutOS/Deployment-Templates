@@ -16,11 +16,11 @@ The first recipes target:
 - Umami at `ca661c7057984aa98ed4f7083d84dae2f65bfcb0`.
 - Memos at `22a5f3385b9fc5bdf282eb597aa3db79798aa5ab`.
 
-Both entries carry detached production acceptance evidence bound to their exact upstream commit and
-plugin digest. The recorded runs cover controlled migrations, serving health, generated-owner
-authentication, and persistence across a second deployment; Memos additionally covers managed
-object storage and its bounded visible-tab refresh adaptation. A green unit test alone is not
-live-deployment evidence.
+Both entries have prior detached production acceptance evidence covering controlled migrations,
+serving health, generated-owner authentication, and persistence across a second deployment; Memos
+additionally covered managed object storage and its bounded visible-tab refresh adaptation. Their
+updated generated workflows remain blocked until renewed production runs are bound to the new exact
+plugin digests. A green unit test alone is not live-deployment evidence.
 
 ## Trust boundary
 
