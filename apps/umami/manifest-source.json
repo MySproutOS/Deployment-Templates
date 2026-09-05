@@ -14,7 +14,7 @@
   "readiness": {
     "status": "blocked",
     "blocked_reasons": [
-      "The Node.js 24 and action v1.0.2 generated workflow is awaiting a renewed production end-to-end pass bound to its exact plugin digest."
+      "The Node.js 24 and action v1.0.3 generated workflow is awaiting a renewed production end-to-end pass bound to its exact plugin digest."
     ]
   },
   "plugin": {

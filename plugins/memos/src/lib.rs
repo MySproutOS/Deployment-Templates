@@ -399,7 +399,7 @@ mod tests {
         assert!(workflow.contains("directory: .sproutos/dist"));
         assert!(workflow.contains("runtime: provided.al2023"));
         assert!(workflow.contains("handler: bootstrap"));
-        assert!(workflow.contains("test -x .sproutos/dist/bootstrap"));
+        assert!(workflow.contains("test -x .sproutos/dist/run.sh"));
         assert!(workflow.contains("migration-directory: .sproutos/migration"));
         assert!(workflow.contains("migration-handler: bootstrap"));
         assert!(workflow.contains("test -x .sproutos/migration/bootstrap"));

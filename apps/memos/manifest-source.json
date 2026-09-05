@@ -14,7 +14,7 @@
   "readiness": {
     "status": "blocked",
     "blocked_reasons": [
-      "The action v1.0.2 generated workflow is awaiting a renewed production end-to-end pass bound to its exact plugin digest."
+      "The corrected web bundle and action v1.0.3 generated workflow are awaiting a renewed production end-to-end pass bound to their exact plugin digest."
     ]
   },
   "plugin": {
