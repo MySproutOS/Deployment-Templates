@@ -12,15 +12,17 @@
   "license": "MIT",
   "platform": "web",
   "readiness": {
-    "status": "live",
-    "blocked_reasons": []
+    "status": "blocked",
+    "blocked_reasons": [
+      "The Node.js 24 and action v1.0.2 generated workflow is awaiting a renewed production end-to-end pass bound to its exact plugin digest."
+    ]
   },
   "plugin": {
     "protocol_version": 1
   },
   "deployment": {
     "preset": "next",
-    "runtime": "nodejs22.x",
+    "runtime": "nodejs24.x",
     "architecture": "arm64",
     "migration": {
       "kind": "artifact",
